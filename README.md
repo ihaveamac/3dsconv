@@ -5,6 +5,8 @@ It supports using only an ExHeader XORpad, as well as decrypted roms.
 
 It requires [3dstool](https://github.com/dnasdw/3dstool) and [makerom](https://github.com/profi200/Project_CTR) in the PATH.
 
+This has not been tested with Python 3.x.
+
 ## Usage
 ```bash
 3dsconv.py [options] game.3ds [game.cci ...]
