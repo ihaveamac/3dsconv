@@ -15,17 +15,17 @@ def testcommand(cmd):
 			raise
 		return False
 def runcommand(cmdargs):
-	print_v("$ "+" ".join(cmdargs))
+	print_v("$ %s" % " ".join(cmdargs))
 	proc = subprocess.Popen(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	proc.wait()
 	#print(proc.returncode)
 	procoutput = proc.communicate()[0]
 	print_v(procoutput)
 	if proc.returncode != 0:
-		print("! "+cmdargs[0]+" had an error.")
+		print("! %s had an error." % cmdargs[0])
 		# prevent printing twice
 		if not verbose:
-			print("- full command: "+" ".join(cmdargs))
+			print("- full command: %s" % " ".join(cmdargs))
 			print("- output:")
 			print(procoutput)
 
@@ -127,7 +127,7 @@ for rom in sys.argv[1:]:
 	ncsdmagic = romf.read(4)
 	romf.seek(0x190)
 	tid = binascii.hexlify(romf.read(8)[::-1])
-	xorpad = os.path.join(xorpaddir, tid.upper()+".Main.exheader.xorpad")
+	xorpad = os.path.join(xorpaddir, "%s.Main.exheader.xorpad" % tid.upper())
 	romf.seek(0x418F)
 	decrypted = int(binascii.hexlify(romf.read(1))) & 0x04
 	romf.close()
