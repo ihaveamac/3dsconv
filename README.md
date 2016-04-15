@@ -18,8 +18,8 @@ Place `ncchinfo.bin` at the root or `/Decrypt9` on your 3DS SD card, run Decrypt
 ```bash
 python2 3dsconv.py [options] game.3ds [game.cci ...]
 ```
-* `--xorpads=<dir>` - use xorpads in the specified directory, default is current directory
-* `--output=<dir>` - save converted CIA files in the specified directory, default is current directory
+* `--xorpads=<dir>` - use xorpads in the specified directory, default is current directory or what is set as `xorpad-directory`
+* `--output=<dir>` - save converted CIA files in the specified directory, default is current directory or what is set as `output-directory`
 * `--force` - run even if 3dstool/makerom aren't found
 * `--nocleanup` - don't remove temporary files once finished
 * `--verbose` - print more information
@@ -27,3 +27,5 @@ python2 3dsconv.py [options] game.3ds [game.cci ...]
 ## License / Credits
 * `3dsconv.py` is under the MIT license.
 * `ncchinfo_gen_exheader.py` is from [Decrypt9WIP](https://github.com/d0k3/Decrypt9WIP/blob/master/scripts/ncchinfo_gen.py), modified to generate an `ncchinfo.bin` file that only generates ExHeader XORpads.
+
+For versions older than "2.0", see this [Gist](https://gist.github.com/ihaveamac/dfc01fa09483c275f72ad69cd7e8080f).
