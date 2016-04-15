@@ -19,7 +19,7 @@ def runcommand(cmdargs):
 	proc = subprocess.Popen(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	proc.wait()
 	#print(proc.returncode)
-	procoutput = proc.communicate()[0]
+	procoutput = proc.communicate()[0].decode('utf-8')
 	print_v(procoutput)
 	if proc.returncode != 0:
 		print("! %s had an error." % cmdargs[0])
@@ -126,8 +126,8 @@ for rom in sys.argv[1:]:
 	romf.seek(0x100)
 	ncsdmagic = romf.read(4)
 	romf.seek(0x190)
-	tid = binascii.hexlify(romf.read(8)[::-1])
-	xorpad = os.path.join(xorpaddir, "%s.Main.exheader.xorpad" % tid.upper().decode('utf-8'))
+	tid = binascii.hexlify(romf.read(8)[::-1]).decode('utf-8')
+	xorpad = os.path.join(xorpaddir, "%s.Main.exheader.xorpad" % tid.upper())
 	romf.seek(0x418F)
 	decrypted = int(binascii.hexlify(romf.read(1))) & 0x04
 	romf.close()
