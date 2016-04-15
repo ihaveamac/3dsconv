@@ -8,7 +8,7 @@ xorpad_directory = ""
 output_directory = ""
 
 #################
-version = "2.01"
+version = "2.02d"
 
 helptext = """3dsconv.py ~ version %s
 https://github.com/ihaveamac/3dsconv
@@ -18,6 +18,7 @@ usage: 3dsconv.py [options] game.3ds [game.cci ...]
                      default is %s
   --output=<dir>   - save converted CIA files in the specified directory
                      default is %s
+  --overwrite      - overwrite any existing converted CIA, if it exists
   --force          - run even if 3dstool/makerom aren't found
   --nocleanup      - don't remove temporary files once finished
   --verbose        - print more information
@@ -31,6 +32,7 @@ usage: 3dsconv.py [options] game.3ds [game.cci ...]
 
 cleanup = not "--nocleanup" in sys.argv
 verbose = "--verbose" in sys.argv
+overwrite = "--overwrite" in sys.argv
 
 def print_v(msg):
 	if verbose:
@@ -52,7 +54,6 @@ def runcommand(cmdargs):
 	print_v("$ %s" % " ".join(cmdargs))
 	proc = subprocess.Popen(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	proc.wait()
-	#print(proc.returncode)
 	procoutput = proc.communicate()[0]
 	print_v(procoutput)
 	if proc.returncode != 0:
@@ -135,6 +136,11 @@ for rom in sys.argv[1:]:
 		print("! %s doesn't exist." % rom)
 		continue
 	romname = os.path.basename(os.path.splitext(rom)[0])
+	cianame = os.path.join(output_directory, romname+".cia")
+	if not overwrite and os.path.isfile(cianame):
+		print("! %s already exists." % cianame)
+		print("  to force conversion and overwriting this, use --overwrite")
+		continue
 	romf = open(rom, "rb")
 	romf.seek(0x100)
 	ncsdmagic = romf.read(4)
@@ -213,7 +219,6 @@ for rom in sys.argv[1:]:
 	runcommand(cmds)
 	print_v("- building CIA")
 	# CIA
-	# make_cia -o game-conv-make_cia.cia --savesize=128 --content0=game-conv.cxi --id_0=0 --index_0=0
 	os.chdir("work") # not doing this breaks make_cia's ability to properly include Manual/DLP Child for some reason
 	cmds = ["make_cia", "-o", "%s-game-conv.cia" % tid, "--savesize=%s" % savesize, "--content0=%s-game-conv.cxi" % tid, "--id_0=0", "--index_0=0"]
 	if os.path.isfile("%s-manual.cfa" % tid):
@@ -224,12 +229,16 @@ for rom in sys.argv[1:]:
 	os.chdir("..")
 
 	# apparently if the file exists, it will throw an error on Windows
-	silentremove(os.path.join(output_directory, romname+".cia"))
-	os.rename("work/%s-game-conv.cia" % tid, os.path.join(output_directory, romname+".cia"))
+	silentremove(cianame)
+	os.rename("work/%s-game-conv.cia" % tid, cianame)
 	if cleanup:
 		docleanup(tid)
 
 	processedroms += 1
 
-print("* done converting!")
-print("  %i out of %i roms processed" % (processedroms, totalroms))
+if totalroms == 0:
+	print(helptext % (version, ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory), ("current directory" if output_directory == "" else "'%s'" % output_directory)))
+else:
+	print("* done converting!")
+	print("  %i out of %i roms processed" % (processedroms, totalroms))
+sys.exit()
