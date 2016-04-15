@@ -205,8 +205,6 @@ for rom in sys.argv[1:]:
 	cia.write(savesize)
 	cia.close()
 
-	print(outputdir)
-	print(os.path.join(outputdir, romname+".cia"))
 	os.rename("work/%s-game-conv.cia" % tid, os.path.join(outputdir, romname+".cia"))
 	if cleanup:
 		docleanup(tid)
