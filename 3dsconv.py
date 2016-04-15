@@ -75,6 +75,10 @@ def docleanup(tid):
 	silentremove("work/%s-logo.bcma.lz" % tid)
 	silentremove("work/%s-plain.bin" % tid)
 
+# based on http://stackoverflow.com/questions/1766535/bit-hack-round-off-to-multiple-of-8/1766566#1766566
+def roundup(x):
+	return ( (int(x, 16) + 63) >> 6) << 6
+
 if len(sys.argv) < 2:
 	print(helptext % (version, ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory), ("current directory" if output_directory == "" else "'%s'" % output_directory)))
 	sys.exit(1)
@@ -222,15 +226,18 @@ for rom in sys.argv[1:]:
 	cia = open("work/%s-game-conv.cia" % tid, "r+b")
 	cia.seek(0x0)
 	cia_h_ahs = binascii.hexlify(cia.read(0x4)[::-1])
-	cia_h_ahs_align = int(math.ceil(int(cia_h_ahs, 16) / 64.0) * 64.0)
+	cia_h_ahs_align = roundup(cia_h_ahs)
+
 	# Certificate chain size
 	cia.seek(0x8)
 	cia_h_cetks = binascii.hexlify(cia.read(0x4)[::-1])
-	cia_h_cetks_align = int(math.ceil(int(cia_h_cetks, 16) / 64.0) * 64.0)
+	cia_h_cetks_align = roundup(cia_h_cetks)
+
 	# Ticket size
 	cia.seek(0xC)
 	cia_h_tiks = binascii.hexlify(cia.read(0x4)[::-1])
-	cia_h_tiks_align = int(math.ceil(int(cia_h_tiks, 16) / 64.0) * 64.0)
+	cia_h_tiks_align = roundup(cia_h_tiks)
+
 	tmdoffset = cia_h_ahs_align + cia_h_cetks_align + cia_h_tiks_align
 	cia.seek(tmdoffset + 0x140 + 0x5a)
 	cia.write(savesize)
