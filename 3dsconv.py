@@ -8,7 +8,7 @@ xorpad_directory = ""
 output_directory = ""
 
 #################
-version = "2.0"
+version = "2.01"
 
 helptext = """3dsconv.py ~ version %s
 https://github.com/ihaveamac/3dsconv
@@ -29,13 +29,20 @@ usage: 3dsconv.py [options] game.3ds [game.cci ...]
   or in the directory specified by --xorpads=<dir>
 - encrypted and decrypted roms can be converted at the same time"""
 
+cleanup = not "--nocleanup" in sys.argv
+verbose = "--verbose" in sys.argv
+
 def print_v(msg):
 	if verbose:
 		print(msg)
 
 def testcommand(cmd):
+	print_v("- testing: %s" % cmd)
 	try:
-		proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+		proc = subprocess.Popen([cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		proc.stdout.close()
+		proc.stderr.close()
+		proc.wait()
 		return True
 	except OSError as e:
 		if e.errno != 2:
@@ -101,9 +108,6 @@ try:
 except OSError:
 	if not os.path.isdir("work"):
 		raise
-
-cleanup = not "--nocleanup" in sys.argv
-verbose = "--verbose" in sys.argv
 
 # probably should've used argparse
 for arg in sys.argv[1:]:
@@ -219,6 +223,8 @@ for rom in sys.argv[1:]:
 	runcommand(cmds)
 	os.chdir("..")
 
+	# apparently if the file exists, it will throw an error on Windows
+	silentremove(os.path.join(output_directory, romname+".cia"))
 	os.rename("work/%s-game-conv.cia" % tid, os.path.join(output_directory, romname+".cia"))
 	if cleanup:
 		docleanup(tid)
