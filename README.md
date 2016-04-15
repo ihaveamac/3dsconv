@@ -7,9 +7,16 @@ It requires [3dstool](https://github.com/dnasdw/3dstool) and [makerom](https://g
 
 This does not work with Python 3.x.
 
+## Generating XORpads
+If your rom is encrypted, you must generate ExHeader XORpads with a 3DS system and the ability to use Decrypt9. Use `ncchinfo_gen_exheader.py.`
+```bash
+python2 ncchinfo_gen_exheader.py game.3ds [game.cci ...]
+```
+Place `ncchinfo.bin` at the root or `/Decrypt9` on your 3DS SD card, run Decrypt9, and go to "XORpad Generator Options" and "NCCH Padgen". XORpads can then be placed anywhere (use `--xorpads=<dir>` if it's not the current working directory)
+
 ## Usage
 ```bash
-3dsconv.py [options] game.3ds [game.cci ...]
+python2 3dsconv.py [options] game.3ds [game.cci ...]
 ```
 * `--xorpads=<dir>` - use xorpads in the specified directory, default is current directory
 * `--output=<dir>` - save converted CIA files in the specified directory, default is current directory
