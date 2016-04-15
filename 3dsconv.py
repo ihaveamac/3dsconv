@@ -69,21 +69,22 @@ if len(sys.argv) < 2:
 	print("- encrypted and decrypted roms can be converted at the same time")
 	sys.exit(1)
 
-fail = False
-if not testcommand("3dstool") and not "--force" in sys.argv:
-	print("! 3dstool doesn't appear to be in your PATH.")
-	print("  you can get it from here:")
-	print("  https://github.com/dnasdw/3dstool")
-	fail = True
-if not testcommand("makerom") and not "--force" in sys.argv:
-	print("! makerom doesn't appear to be in your PATH.")
-	print("  you can get it from here:")
-	print("  https://github.com/profi200/Project_CTR")
-	fail = True
-if fail:
-	print("- if you want to force the script to run,")
-	print("  add --force as one of the arguments.")
-	sys.exit(1)
+if not "--force" in sys.argv:
+	fail = False
+	if not testcommand("3dstool"):
+		print("! 3dstool doesn't appear to be in your PATH.")
+		print("  you can get it from here:")
+		print("  https://github.com/dnasdw/3dstool")
+		fail = True
+	if not testcommand("makerom"):
+		print("! makerom doesn't appear to be in your PATH.")
+		print("  you can get it from here:")
+		print("  https://github.com/profi200/Project_CTR")
+		fail = True
+	if fail:
+		print("- if you want to force the script to run,")
+		print("  add --force as one of the arguments.")
+		sys.exit(1)
 
 try:
 	os.makedirs("work")
