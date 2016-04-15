@@ -1,5 +1,12 @@
 #!/usr/bin/env python2
-import sys, os, binascii, math, subprocess, errno
+import sys, os, binascii, math, subprocess, errno, hashlib
+
+# default directories (relative to current dir unless you use absolute paths)
+# leave as "" for current working directory
+# using --xorpads= or --output= will override these
+xorpad_directory = "xorpads"
+output_directory = "output"
+
 version = "2.0"
 
 def print_v(msg):
@@ -54,9 +61,9 @@ if len(sys.argv) < 2:
 	print("")
 	print("usage: 3dsconv.py [options] game.3ds [game.cci ...]")
 	print("  --xorpads=<dir>  - use xorpads in the specified directory")
-	print("                     default is current directory")
+	print("                     default is " + ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory))
 	print("  --output=<dir>   - save converted CIA files in the specified directory")
-	print("                     default is current directory")
+	print("                     default is " + ("current directory" if output_directory == "" else "'%s'" % output_directory))
 	print("  --force          - run even if 3dstool/makerom aren't found")
 	print("  --nocleanup      - don't remove temporary files once finished")
 	print("  --verbose        - print more information")
@@ -96,21 +103,19 @@ cleanup = not "--nocleanup" in sys.argv
 verbose = "--verbose" in sys.argv
 
 # probably should've used argparse
-xorpaddir = ""
-outputdir = ""
 for arg in sys.argv[1:]:
 	if arg[:2] != "--":
 		continue
 	if arg[:10] == "--xorpads=":
-		xorpaddir = arg[10:]
+		xorpad_directory = arg[10:]
 	if arg[:9] == "--output=":
-		outputdir = arg[9:]
+		output_directory = arg[9:]
 
-if outputdir != "":
+if output_directory!= "":
 	try:
-		os.makedirs(outputdir)
+		os.makedirs(output_directory)
 	except OSError:
-		if not os.path.isdir(outputdir):
+		if not os.path.isdir(output_directory):
 			raise
 
 totalroms = 0
@@ -128,7 +133,7 @@ for rom in sys.argv[1:]:
 	ncsdmagic = romf.read(4)
 	romf.seek(0x190)
 	tid = binascii.hexlify(romf.read(8)[::-1])
-	xorpad = os.path.join(xorpaddir, "%s.Main.exheader.xorpad" % tid.upper())
+	xorpad = os.path.join(xorpad_directory, "%s.Main.exheader.xorpad" % tid.upper())
 	romf.seek(0x418F)
 	decrypted = int(binascii.hexlify(romf.read(1))) & 0x04
 	romf.close()
@@ -145,15 +150,36 @@ for rom in sys.argv[1:]:
 
 	docleanup(tid)
 
-	print_v("- extracting")
+	print_v("- extracting rom")
 	runcommand(["3dstool", "-xvt012f", "cci", "work/%s-game-orig.cxi" % tid, "work/%s-manual.cfa" % tid, "work/%s-dlpchild.cfa" % tid, rom])
-	cmds0 = ["3dstool", "-xvtf", "cxi", "work/%s-game-orig.cxi" % tid, "--header", "work/%s-ncchheader.bin" % tid, "--exh", "work/%s-exheader.bin" % tid, "--exefs", "work/%s-exefs.bin" % tid, "--romfs", "work/%s-romfs.bin" % tid, "--plain", "work/%s-plain.bin" % tid, "--logo", "work/%s-logo.bcma.lz" % tid]
+	cmds = ["3dstool", "-xvtf", "cxi", "work/%s-game-orig.cxi" % tid, "--header", "work/%s-ncchheader.bin" % tid, "--exh", "work/%s-exheader.bin" % tid]
 	if not decrypted:
-		cmds0.extend(["--exh-xor", xorpad])
-	runcommand(cmds0)
+		cmds.extend(["--exh-xor", xorpad])
+	runcommand(cmds)
 
-	print_v("- patching")
+	print_v("- verifying ExHeader SHA-256 hash")
 	exh = open("work/%s-exheader.bin" % tid, "r+b")
+	ncch = open("work/%s-game-orig.cxi" % tid, "rb")
+	# verify the exheader extracted properly
+	exh_hash = hashlib.sha256(exh.read(0x400)).hexdigest()
+	ncch.seek(0x160)
+	ncch_exh_hash = binascii.hexlify(ncch.read(0x20))
+	ncch.close()
+	if exh_hash != ncch_exh_hash:
+		if decrypted:
+			print("! this rom might be corrupt.")
+		else:
+			print("! %s is not the correct xorpad, or is corrupt." % xorpad)
+			print("  try using ncchinfo_gen_exheader.py again or find the correct xorpad.")
+		print("  ExHeader SHA-256 hash check failed.")
+		exh.close()
+		if cleanup:
+			docleanup(tid)
+		continue
+
+	runcommand(["3dstool", "-xvtf", "cxi", "work/%s-game-orig.cxi" % tid, "--exefs", "work/%s-exefs.bin" % tid, "--romfs", "work/%s-romfs.bin" % tid, "--plain", "work/%s-plain.bin" % tid, "--logo", "work/%s-logo.bcma.lz" % tid])
+
+	print_v("- patching ExHeader")
 	exh.seek(0xD)
 	x = exh.read(1)
 	y = ord(x)
@@ -169,21 +195,22 @@ for rom in sys.argv[1:]:
 	#print(binascii.hexlify(savesize[::-1]))
 	exh.close()
 
-	print_v("- rebuilding")
+	print_v("- rebuilding CXI")
 	# CXI
-	cmds1 = ["3dstool", "-cvtf", "cxi", "work/%s-game-conv.cxi" % tid, "--header", "work/%s-ncchheader.bin" % tid, "--exh", "work/%s-exheader.bin" % tid, "--exefs", "work/%s-exefs.bin" % tid, "--not-update-exefs-hash", "--romfs", "work/%s-romfs.bin" % tid, "--not-update-romfs-hash", "--plain", "work/%s-plain.bin" % tid]
+	cmds = ["3dstool", "-cvtf", "cxi", "work/%s-game-conv.cxi" % tid, "--header", "work/%s-ncchheader.bin" % tid, "--exh", "work/%s-exheader.bin" % tid, "--exefs", "work/%s-exefs.bin" % tid, "--not-update-exefs-hash", "--romfs", "work/%s-romfs.bin" % tid, "--not-update-romfs-hash", "--plain", "work/%s-plain.bin" % tid]
 	if not decrypted:
-		cmds1.extend(["--exh-xor", xorpad])
+		cmds.extend(["--exh-xor", xorpad])
 	if os.path.isfile("work/%s-logo.bcma.lz" % tid):
-		cmds1.extend(["--logo", "work/%s-logo.bcma.lz" % tid])
-	runcommand(cmds1)
+		cmds.extend(["--logo", "work/%s-logo.bcma.lz" % tid])
+	runcommand(cmds)
+	print_v("- building CIA")
 	# CIA
-	cmds2 = ["makerom", "-f", "cia", "-o", "work/%s-game-conv.cia" % tid, "-content", "work/%s-game-conv.cxi:0:0" % tid]
+	cmds = ["makerom", "-f", "cia", "-o", "work/%s-game-conv.cia" % tid, "-content", "work/%s-game-conv.cxi:0:0" % tid]
 	if os.path.isfile("work/%s-manual.cfa" % tid):
-		cmds2.extend(["-content", "work/%s-manual.cfa:1:1" % tid])
+		cmds.extend(["-content", "work/%s-manual.cfa:1:1" % tid])
 	if os.path.isfile("work/%s-dlpchild.cfa" % tid):
-		cmds2.extend(["-content", "work/%s-dlpchild.cfa:2:2" % tid])
-	runcommand(cmds2)
+		cmds.extend(["-content", "work/%s-dlpchild.cfa:2:2" % tid])
+	runcommand(cmds)
 
 	# makerom doesn't accept custom SaveDataSize for some reason
 	# but make_cia makes a bad CIA that doesn't support the Manual or DLP child
@@ -206,7 +233,7 @@ for rom in sys.argv[1:]:
 	cia.write(savesize)
 	cia.close()
 
-	os.rename("work/%s-game-conv.cia" % tid, os.path.join(outputdir, romname+".cia"))
+	os.rename("work/%s-game-conv.cia" % tid, os.path.join(output_directory, romname+".cia"))
 	if cleanup:
 		docleanup(tid)
 
