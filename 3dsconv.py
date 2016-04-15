@@ -7,7 +7,27 @@ import sys, os, binascii, math, subprocess, errno, hashlib
 xorpad_directory = ""
 output_directory = ""
 
+#################
 version = "2.0"
+
+helptext = """3dsconv.py ~ version %s
+https://github.com/ihaveamac/3dsconv
+
+usage: 3dsconv.py [options] game.3ds [game.cci ...]
+  --xorpads=<dir>  - use xorpads in the specified directory
+                     default is %s
+  --output=<dir>   - save converted CIA files in the specified directory
+                     default is %s
+  --force          - run even if 3dstool/makerom aren't found
+  --nocleanup      - don't remove temporary files once finished
+  --verbose        - print more information
+
+- 3dstool and makerom should exist in your PATH
+- if a rom is encrypted, an ExHeader XORpad
+  should exist in the working directory
+  named \"<TITLEID>.Main.exheader.xorpad\"
+  or in the directory specified by --xorpads=<dir>
+- encrypted and decrypted roms can be converted at the same time"""
 
 def print_v(msg):
 	if verbose:
@@ -56,24 +76,7 @@ def docleanup(tid):
 	silentremove("work/%s-plain.bin" % tid)
 
 if len(sys.argv) < 2:
-	print("""3dsconv.py ~ version %s
-https://github.com/ihaveamac/3dsconv
-
-usage: 3dsconv.py [options] game.3ds [game.cci ...]
-  --xorpads=<dir>  - use xorpads in the specified directory
-                     default is %s
-  --output=<dir>   - save converted CIA files in the specified directory
-                     default is %s
-  --force          - run even if 3dstool/makerom aren't found
-  --nocleanup      - don't remove temporary files once finished
-  --verbose        - print more information
-
-- 3dstool and makerom should exist in your PATH
-- if a rom is encrypted, an ExHeader XORpad
-  should exist in the working directory
-  named \"<TITLEID>.Main.exheader.xorpad\"
-  or in the directory specified by --xorpads=<dir>
-- encrypted and decrypted roms can be converted at the same time""" % (version, ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory), ("current directory" if output_directory == "" else "'%s'" % output_directory)))
+	print(helptext % (version, ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory), ("current directory" if output_directory == "" else "'%s'" % output_directory)))
 	sys.exit(1)
 
 if not "--force" in sys.argv:
