@@ -15,17 +15,17 @@ def testcommand(cmd):
 			raise
 		return False
 def runcommand(cmdargs):
-	print_v("$ %s" % " ".join(cmdargs))
+	print_v("$ "+" ".join(cmdargs))
 	proc = subprocess.Popen(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	proc.wait()
 	#print(proc.returncode)
-	procoutput = proc.communicate()[0].decode('utf-8')
+	procoutput = proc.communicate()[0]
 	print_v(procoutput)
 	if proc.returncode != 0:
-		print("! %s had an error." % cmdargs[0])
+		print("! "+cmdargs[0]+" had an error.")
 		# prevent printing twice
 		if not verbose:
-			print("- full command: %s" % " ".join(cmdargs))
+			print("- full command: "+" ".join(cmdargs))
 			print("- output:")
 			print(procoutput)
 
@@ -126,13 +126,13 @@ for rom in sys.argv[1:]:
 	romf.seek(0x100)
 	ncsdmagic = romf.read(4)
 	romf.seek(0x190)
-	tid = binascii.hexlify(romf.read(8)[::-1]).decode('utf-8')
-	xorpad = os.path.join(xorpaddir, "%s.Main.exheader.xorpad" % tid.upper())
+	tid = binascii.hexlify(romf.read(8)[::-1])
+	xorpad = os.path.join(xorpaddir, tid.upper()+".Main.exheader.xorpad")
 	romf.seek(0x418F)
 	decrypted = int(binascii.hexlify(romf.read(1))) & 0x04
 	romf.close()
 	print("- processing: %s (%s)" % (romname, "decrypted" if decrypted else "encrypted"))
-	if ncsdmagic != b"NCSD":
+	if ncsdmagic != "NCSD":
 		print("! %s is probably not a rom." % rom)
 		print("  NCSD magic not found.")
 		continue
@@ -161,7 +161,7 @@ for rom in sys.argv[1:]:
 	print_v("  original: "+hex(y))
 	print_v("  shifted:  "+hex(z))
 	exh.seek(0xD)
-	exh.write(bytes(z))
+	exh.write(chr(z))
 	exh.seek(0x1C0)
 	savesize = exh.read(4)
 	# actually 8 bytes but the TMD only has 4 bytes

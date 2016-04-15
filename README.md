@@ -5,7 +5,7 @@ It supports using only an ExHeader XORpad, as well as decrypted roms.
 
 It requires [3dstool](https://github.com/dnasdw/3dstool) and [makerom](https://github.com/profi200/Project_CTR) in the PATH.
 
-This has not been tested with Python 3.x.
+This does not work with Python 3.x.
 
 ## Usage
 ```bash
