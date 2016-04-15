@@ -75,10 +75,6 @@ def docleanup(tid):
 	silentremove("work/%s-logo.bcma.lz" % tid)
 	silentremove("work/%s-plain.bin" % tid)
 
-# based on http://stackoverflow.com/questions/1766535/bit-hack-round-off-to-multiple-of-8/1766566#1766566
-def roundup(x):
-	return ( (int(x, 16) + 63) >> 6) << 6
-
 if len(sys.argv) < 2:
 	print(helptext % (version, ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory), ("current directory" if output_directory == "" else "'%s'" % output_directory)))
 	sys.exit(1)
