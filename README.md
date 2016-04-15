@@ -1,9 +1,9 @@
 # 3dsconv
 `3dsconv.py` is a Python script that "converts" a Nintendo 3DS rom (.3ds, .cci) to an installable CIA.
 
-It supports using only an ExHeader XORpad, as well as decrypted roms.
+It supports using only an ExHeader XORpad, as well as decrypted roms. The ExHeader XORpad name format is `<TITLEID>.Main.exheader.xorpad`.
 
-It requires [3dstool](https://github.com/dnasdw/3dstool) and [makerom](https://github.com/profi200/Project_CTR) in the PATH.
+It requires [3dstool](https://github.com/dnasdw/3dstool) and [make_cia](https://github.com/ihaveamac/ctr_toolkit) in the PATH.
 
 This does not work with Python 3.x.
 

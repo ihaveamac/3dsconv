@@ -22,7 +22,7 @@ usage: 3dsconv.py [options] game.3ds [game.cci ...]
   --nocleanup      - don't remove temporary files once finished
   --verbose        - print more information
 
-- 3dstool and makerom should exist in your PATH
+- 3dstool and make_cia should exist in your PATH
 - if a rom is encrypted, an ExHeader XORpad
   should exist in the working directory
   named \"<TITLEID>.Main.exheader.xorpad\"
@@ -90,10 +90,10 @@ if not "--force" in sys.argv:
 		print("  you can get it from here:")
 		print("  https://github.com/dnasdw/3dstool")
 		fail = True
-	if not testcommand("makerom"):
-		print("! makerom doesn't appear to be in your PATH.")
+	if not testcommand("make_cia"):
+		print("! make_cia doesn't appear to be in your PATH.")
 		print("  you can get it from here:")
-		print("  https://github.com/profi200/Project_CTR")
+		print("  https://github.com/ihaveamac/ctr_toolkit")
 		fail = True
 	if fail:
 		print("- if you want to force the script to run,")
@@ -197,7 +197,8 @@ for rom in sys.argv[1:]:
 	exh.seek(0xD)
 	exh.write(chr(z))
 	exh.seek(0x1C0)
-	savesize = exh.read(4)
+	# there has to be a better way to do this...
+	savesize = str(int(binascii.hexlify(exh.read(4)[::-1]), 16) / 1024)
 	# actually 8 bytes but the TMD only has 4 bytes
 	#print(binascii.hexlify(savesize[::-1]))
 	exh.close()
@@ -212,36 +213,15 @@ for rom in sys.argv[1:]:
 	runcommand(cmds)
 	print_v("- building CIA")
 	# CIA
-	cmds = ["makerom", "-f", "cia", "-o", "work/%s-game-conv.cia" % tid, "-content", "work/%s-game-conv.cxi:0:0" % tid]
-	if os.path.isfile("work/%s-manual.cfa" % tid):
-		cmds.extend(["-content", "work/%s-manual.cfa:1:1" % tid])
-	if os.path.isfile("work/%s-dlpchild.cfa" % tid):
-		cmds.extend(["-content", "work/%s-dlpchild.cfa:2:2" % tid])
+	# make_cia -o game-conv-make_cia.cia --savesize=128 --content0=game-conv.cxi --id_0=0 --index_0=0
+	os.chdir("work") # not doing this breaks make_cia's ability to properly include Manual/DLP Child for some reason
+	cmds = ["make_cia", "-o", "%s-game-conv.cia" % tid, "--savesize=%s" % savesize, "--content0=%s-game-conv.cxi" % tid, "--id_0=0", "--index_0=0"]
+	if os.path.isfile("%s-manual.cfa" % tid):
+		cmds.extend(["--content1=%s-manual.cfa" % tid, "--id_1=1", "--index_1=1"])
+	if os.path.isfile("%s-dlpchild.cfa" % tid):
+		cmds.extend(["--content2=%s-dlpchild.cfa" % tid, "--id_2=2", "--index_2=2"])
 	runcommand(cmds)
-
-	# makerom doesn't accept custom SaveDataSize for some reason
-	# but make_cia makes a bad CIA that doesn't support the Manual or DLP child
-
-	# Archive Header Size
-	cia = open("work/%s-game-conv.cia" % tid, "r+b")
-	cia.seek(0x0)
-	cia_h_ahs = binascii.hexlify(cia.read(0x4)[::-1])
-	cia_h_ahs_align = roundup(cia_h_ahs)
-
-	# Certificate chain size
-	cia.seek(0x8)
-	cia_h_cetks = binascii.hexlify(cia.read(0x4)[::-1])
-	cia_h_cetks_align = roundup(cia_h_cetks)
-
-	# Ticket size
-	cia.seek(0xC)
-	cia_h_tiks = binascii.hexlify(cia.read(0x4)[::-1])
-	cia_h_tiks_align = roundup(cia_h_tiks)
-
-	tmdoffset = cia_h_ahs_align + cia_h_cetks_align + cia_h_tiks_align
-	cia.seek(tmdoffset + 0x140 + 0x5a)
-	cia.write(savesize)
-	cia.close()
+	os.chdir("..")
 
 	os.rename("work/%s-game-conv.cia" % tid, os.path.join(output_directory, romname+".cia"))
 	if cleanup:
