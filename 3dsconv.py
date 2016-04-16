@@ -176,6 +176,11 @@ for rom in sys.argv[1:]:
 		print("! %s is probably not a rom." % rom)
 		print("  NCSD magic not found.")
 		continue
+	if noconvert:
+		print("- not converting %s (%s) because --noconvert was used" % (romname, "decrypted" if decrypted else "encrypted"))
+		if cleanup:
+			docleanup(tid)
+		continue
 	if not decrypted:
 		if not os.path.isfile(xorpad):
 			print("! %s couldn't be found." % xorpad)
@@ -215,12 +220,6 @@ for rom in sys.argv[1:]:
 			docleanup(tid)
 		continue
 
-	if noconvert:
-		print("- not converting %s (%s) because --noconvert was used" % (romname, "decrypted" if decrypted else "encrypted"))
-		exh.close()
-		if cleanup:
-			docleanup(tid)
-		continue
 	print("- processing: %s (%s)" % (romname, "decrypted" if decrypted else "encrypted"))
 
 	runcommand(["3dstool", "-xvtf", "cxi", "work/%s-game-orig.cxi" % tid, "--exefs", "work/%s-exefs.bin" % tid, "--romfs", "work/%s-romfs.bin" % tid, "--plain", "work/%s-plain.bin" % tid, "--logo", "work/%s-logo.bcma.lz" % tid])
