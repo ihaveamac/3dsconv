@@ -13,12 +13,16 @@ version = "2.02d"
 helptext = """3dsconv.py ~ version %s
 https://github.com/ihaveamac/3dsconv
 
-usage: 3dsconv.py [options] game.3ds [game.cci ...]
+usage: 3dsconv.py [options] game.3ds [game.3ds ...]
   --xorpads=<dir>  - use xorpads in the specified directory
                      default is %s
   --output=<dir>   - save converted CIA files in the specified directory
                      default is %s
   --overwrite      - overwrite any existing converted CIA, if it exists
+  --gen-ncchinfo   - generate ncchinfo.bin for roms that don't have a valid xorpad
+  --gen-ncch-all   - use with --gen-ncchinfo to generate an ncchinfo.bin for all roms
+  --noconvert      - don't convert roms
+                     useful if you just want to generate ncchinfo.bin
   --force          - run even if 3dstool/makerom aren't found
   --nocleanup      - don't remove temporary files once finished
   --verbose        - print more information
@@ -33,6 +37,9 @@ usage: 3dsconv.py [options] game.3ds [game.cci ...]
 cleanup = not "--nocleanup" in sys.argv
 verbose = "--verbose" in sys.argv
 overwrite = "--overwrite" in sys.argv
+genncchinfo = "--gen-ncchinfo" in sys.argv
+genncchall = "--gen-ncch-all" in sys.argv
+noconvert = "--noconvert" in sys.argv
 
 def print_v(msg):
 	if verbose:
@@ -126,8 +133,21 @@ if output_directory!= "":
 		if not os.path.isdir(output_directory):
 			raise
 
+ncchinfolist = []
+# this only does ExHeader stuff
+# so I think I can get away with hard-coding some things
+def ncchinfoadd(rom):
+	romf = open(rom, "rb")
+	romf.seek(0x190)
+	tid = romf.read(8)[::-1]
+	romf.seek(0x4000)
+	keyY = romf.read(16)
+	ncchinfolist.extend([tid + "\x01\x00\x00\x00\x00\x00\x00\x00" + keyY + "\x01\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + tid[::-1] + ("/%s.Main.exheader.xorpad" % binascii.hexlify(tid).upper()).ljust(112, "\x00")])
+	romf.close()
+
 totalroms = 0
 processedroms = 0
+
 for rom in sys.argv[1:]:
 	if rom[:2] == "--":
 		continue
@@ -141,6 +161,8 @@ for rom in sys.argv[1:]:
 		print("! %s already exists." % cianame)
 		print("  to force conversion and overwriting this, use --overwrite")
 		continue
+	if genncchinfo and genncchall:
+		ncchinfoadd(rom)
 	romf = open(rom, "rb")
 	romf.seek(0x100)
 	ncsdmagic = romf.read(4)
@@ -150,7 +172,6 @@ for rom in sys.argv[1:]:
 	romf.seek(0x418F)
 	decrypted = int(binascii.hexlify(romf.read(1))) & 0x04
 	romf.close()
-	print("- processing: %s (%s)" % (romname, "decrypted" if decrypted else "encrypted"))
 	if ncsdmagic != "NCSD":
 		print("! %s is probably not a rom." % rom)
 		print("  NCSD magic not found.")
@@ -158,7 +179,9 @@ for rom in sys.argv[1:]:
 	if not decrypted:
 		if not os.path.isfile(xorpad):
 			print("! %s couldn't be found." % xorpad)
-			print("  use ncchinfo_gen_exheader.py with this rom.")
+			if not genncchinfo:
+				print("  use --gen-ncchinfo with this rom.")
+			ncchinfoadd(rom)
 			continue
 
 	docleanup(tid)
@@ -183,12 +206,20 @@ for rom in sys.argv[1:]:
 			print("! this rom might be corrupt.")
 		else:
 			print("! %s is not the correct xorpad, or is corrupt." % xorpad)
-			print("  try using ncchinfo_gen_exheader.py again or find the correct xorpad.")
+			if not genncchinfo:
+				print("  try using --gen-ncchinfo again or find the correct xorpad.")
+			ncchinfoadd(rom)
 		print("  ExHeader SHA-256 hash check failed.")
 		exh.close()
 		if cleanup:
 			docleanup(tid)
 		continue
+
+	if noconvert:
+		print("- not converting %s (%s) because --noconvert was used" % (romname, "decrypted" if decrypted else "encrypted"))
+		exh.close()
+		continue
+	print("- processing: %s (%s)" % (romname, "decrypted" if decrypted else "encrypted"))
 
 	runcommand(["3dstool", "-xvtf", "cxi", "work/%s-game-orig.cxi" % tid, "--exefs", "work/%s-exefs.bin" % tid, "--romfs", "work/%s-romfs.bin" % tid, "--plain", "work/%s-plain.bin" % tid, "--logo", "work/%s-logo.bcma.lz" % tid])
 
@@ -238,7 +269,17 @@ for rom in sys.argv[1:]:
 
 if totalroms == 0:
 	print(helptext % (version, ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory), ("current directory" if output_directory == "" else "'%s'" % output_directory)))
+	sys.exit(1)
 else:
 	print("* done converting!")
 	print("  %i out of %i roms processed" % (processedroms, totalroms))
-sys.exit()
+	if genncchinfo and len(ncchinfolist) != 0:
+		print("- saving ncchinfo.bin")
+		ncchinfo = open("ncchinfo.bin", "wb")
+		ncchinfo.write("\xFF\xFF\xFF\xFF\x04\x00\x00\xF0")
+		# this is bad, I know
+		ncchinfo.write(binascii.unhexlify(format(len(ncchinfolist), 'x').rjust(8, '0'))[::-1])
+		ncchinfo.write("\x00\x00\x00\x00")
+		for i in ncchinfolist:
+			ncchinfo.write(i)
+		ncchinfo.close()
