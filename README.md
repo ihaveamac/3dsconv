@@ -26,6 +26,6 @@ python2 3dsconv.py [options] game.3ds [game.3ds ...]
 
 ## License / Credits
 * `3dsconv.py` is under the MIT license.
-* `ncchinfo_gen_exheader.py` is from [Decrypt9WIP](https://github.com/d0k3/Decrypt9WIP/blob/master/scripts/ncchinfo_gen.py), modified to generate an `ncchinfo.bin` file that only generates ExHeader XORpads.
+* `ncchinfo.bin` generation is based on [Decrypt9WIP's `ncchinfo_gen.py`](https://github.com/d0k3/Decrypt9WIP/blob/master/scripts/ncchinfo_gen.py).
 
 For versions older than "2.0", see this [Gist](https://gist.github.com/ihaveamac/dfc01fa09483c275f72ad69cd7e8080f).

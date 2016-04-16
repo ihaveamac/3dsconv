@@ -286,3 +286,5 @@ else:
 		ncchinfo.close()
 		print("- use Decrypt9 on a 3DS system to generate the xorpads.")
 		print("  place the file at the root or in a folder called \"Decrypt9\".")
+		print("  view the Decrypt9 README and download releases at")
+		print("  https://github.com/d0k3/Decrypt9WIP")
