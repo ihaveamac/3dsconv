@@ -218,6 +218,8 @@ for rom in sys.argv[1:]:
 	if noconvert:
 		print("- not converting %s (%s) because --noconvert was used" % (romname, "decrypted" if decrypted else "encrypted"))
 		exh.close()
+		if cleanup:
+			docleanup(tid)
 		continue
 	print("- processing: %s (%s)" % (romname, "decrypted" if decrypted else "encrypted"))
 
