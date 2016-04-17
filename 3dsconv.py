@@ -236,7 +236,8 @@ for rom in sys.argv[1:]:
 		continue
 
 	print("- processing: %s (%s)" % (romname, "decrypted" if decrypted else "encrypted"))
-	print("~ Manual and Download Play child container may not work")
+	if decrypted:
+		print("~ Manual and Download Play child container may not work")
 
 	#runcommand(["3dstool", "-xvtf", "cxi", "work/%s-game-orig.cxi" % tid, "--exefs", "work/%s-exefs.bin" % tid, "--romfs", "work/%s-romfs.bin" % tid, "--plain", "work/%s-plain.bin" % tid, "--logo", "work/%s-logo.bcma.lz" % tid])
 
