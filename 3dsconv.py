@@ -138,7 +138,7 @@ ncchinfolist = []
 # so I think I can get away with hard-coding some things
 def ncchinfoadd(rom):
 	romf = open(rom, "rb")
-	romf.seek(0x190)
+	romf.seek(0x108)
 	tid = romf.read(8)[::-1]
 	romf.seek(0x4000)
 	keyY = romf.read(16)
@@ -166,7 +166,7 @@ for rom in sys.argv[1:]:
 	romf = open(rom, "rb")
 	romf.seek(0x100)
 	ncsdmagic = romf.read(4)
-	romf.seek(0x190)
+	romf.seek(0x108)
 	tid = binascii.hexlify(romf.read(8)[::-1])
 	xorpad = os.path.join(xorpad_directory, "%s.Main.exheader.xorpad" % tid.upper())
 	romf.seek(0x418F)
