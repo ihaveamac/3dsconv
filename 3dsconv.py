@@ -8,7 +8,7 @@ xorpad_directory = ""
 output_directory = ""
 
 #################
-version = "2.1d"
+version = "2.1"
 
 helptext = """3dsconv.py ~ version %s
 https://github.com/ihaveamac/3dsconv
@@ -236,8 +236,6 @@ for rom in sys.argv[1:]:
 		continue
 
 	print("- processing: %s (%s)" % (romname, "decrypted" if decrypted else "encrypted"))
-	if decrypted:
-		print("~ Manual and Download Play child container may not work")
 
 	#runcommand(["3dstool", "-xvtf", "cxi", "work/%s-game-orig.cxi" % tid, "--exefs", "work/%s-exefs.bin" % tid, "--romfs", "work/%s-romfs.bin" % tid, "--plain", "work/%s-plain.bin" % tid, "--logo", "work/%s-logo.bcma.lz" % tid])
 
