@@ -320,9 +320,9 @@ for rom in sys.argv[1:]:
 	os.chdir("work") # not doing this breaks make_cia's ability to properly include Manual/DLP Child for some reason
 	cmds = ["make_cia", "-o", "%s-game-conv.cia" % tid, "--savesize=%s" % savesize, "--content0=%s-game-conv.cxi" % tid, "--id_0=0", "--index_0=0"]
 	if manualcfa_offset != 0:
-		cmds.extend(["--content1=%s-manual.cfa" % tid, "--id_1=1", "--index_1=1"])
+		cmds.extend(["--content1=%s-manual.cfa" % tid, "--index_1=1"])
 	if dlpchildcfa_offset != 0:
-		cmds.extend(["--content2=%s-dlpchild.cfa" % tid, "--id_2=2", "--index_2=2"])
+		cmds.extend(["--content2=%s-dlpchild.cfa" % tid, "--index_2=2"])
 	runcommand(cmds)
 	os.chdir("..")
 
