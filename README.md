@@ -17,7 +17,7 @@ python2 3dsconv.py [options] game.3ds [game.3ds ...]
 * `--xorpads=<dir>` - use xorpads in the specified directory, default is current directory or what is set as `xorpad-directory`
 * `--output=<dir>` - save converted CIA files in the specified directory, default is current directory or what is set as `output-directory`
 * `--overwrite` - overwrite any existing converted CIA, if it exists
-* `--gen-ncchinfo` - generate ncchinfo.bin for roms that don't have a valid xorpad
+* `--gen-ncchinfo` - generate `ncchinfo.bin` for roms that don't have a valid xorpad
 * `--gen-ncch-all` - use with `--gen-ncchinfo` to generate an `ncchinfo.bin` for all roms
 * `--noconvert` - don't convert roms, useful if you just want to generate `ncchinfo.bin`
 * `--force` - run even if make_cia aren't found
