@@ -8,7 +8,7 @@ xorpad_directory = ""
 output_directory = ""
 
 #################
-version = "2.1"
+version = "2.11"
 
 helptext = """3dsconv.py ~ version %s
 https://github.com/ihaveamac/3dsconv
