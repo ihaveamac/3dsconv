@@ -140,7 +140,7 @@ def ncchinfoadd(rom):
 	tid = romf.read(8)
 	romf.seek(0x4000)
 	keyY = romf.read(16)
-	ncchinfolist.extend([tid + "\x01\x00\x00\x00\x00\x00\x00\x00" + keyY + "\x01\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + tid + ("/%s.Main.exheader.xorpad" % binascii.hexlify(tid[::-1]).upper()).ljust(112, "\x00")])
+	ncchinfolist.extend([tid[::-1] + "\x01\x00\x00\x00\x00\x00\x00\x00" + keyY + "\x01\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + tid + ("/%s.Main.exheader.xorpad" % binascii.hexlify(tid[::-1]).upper()).ljust(112, "\x00")])
 	romf.close()
 
 # used from http://stackoverflow.com/questions/4566498/python-file-iterator-over-a-binary-file-with-newer-idiom
