@@ -230,7 +230,7 @@ for rom in sys.argv[1:]:
 				print("  try using --gen-ncchinfo again or find the correct xorpad.")
 			ncchinfoadd(rom)
 		print("  ExHeader SHA-256 hash check failed.")
-		exh.close()
+		romf.close()
 		if cleanup:
 			docleanup(tid)
 		continue
