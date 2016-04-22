@@ -103,19 +103,6 @@ if not "--force" in sys.argv:
 		print("  add --force as one of the arguments.")
 		sys.exit(1)
 
-try:
-	os.makedirs("work")
-except OSError:
-	if not os.path.isdir("work"):
-		raise
-
-if output_directory!= "":
-	try:
-		os.makedirs(output_directory)
-	except OSError:
-		if not os.path.isdir(output_directory):
-			raise
-
 ncchinfolist = []
 # this only does ExHeader stuff
 # so I think I can get away with hard-coding some things
@@ -152,6 +139,19 @@ for arg in sys.argv[1:]:
 		xorpad_directory = arg[10:]
 	elif arg[:9] == "--output=":
 		output_directory = arg[9:]
+
+try:
+	os.makedirs("work")
+except OSError:
+	if not os.path.isdir("work"):
+		raise
+
+if output_directory != "":
+	try:
+		os.makedirs(output_directory)
+	except OSError:
+		if not os.path.isdir(output_directory):
+			raise
 
 if files == []:
 	print("! no inputted files exist.")
@@ -320,8 +320,6 @@ for rom in files:
 
 	# apparently if the file exists, it will throw an error on Windows
 	silentremove(cianame)
-	print("work/%s-game-conv.cia" % tid)
-	print(cianame)
 	os.rename("work/%s-game-conv.cia" % tid, cianame)
 	if cleanup:
 		docleanup(tid)
