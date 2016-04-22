@@ -8,7 +8,7 @@ xorpad_directory = ""
 output_directory = ""
 
 #################
-version = "2.12"
+version = "2.13d"
 
 helptext = """3dsconv.py ~ version %s
 https://github.com/ihaveamac/3dsconv
@@ -277,6 +277,7 @@ for rom in files:
 			left -= readsize
 			if left <= 0:
 				break
+		manualcfa.close()
 
 	# Download Play child container CFA
 	romf.seek(0x130)
@@ -294,6 +295,7 @@ for rom in files:
 			left -= readsize
 			if left <= 0:
 				break
+		dlpchildcfa.close()
 	romf.close()
 
 	gamecxi.seek(0x160)
@@ -318,6 +320,8 @@ for rom in files:
 
 	# apparently if the file exists, it will throw an error on Windows
 	silentremove(cianame)
+	print("work/%s-game-conv.cia" % tid)
+	print(cianame)
 	os.rename("work/%s-game-conv.cia" % tid, cianame)
 	if cleanup:
 		docleanup(tid)
