@@ -310,7 +310,7 @@ for rom in files:
 
 	print_v("- building CIA")
 	os.chdir("work") # not doing this breaks make_cia's ability to properly include Manual/DLP Child for some reason
-	cmds = ["make_cia", "-o", "%s-game-conv.cia" % tid, "--savesize=%s" % savesize, "--content0=%s-game-conv.cxi" % tid, "--id_0=0", "--index_0=0"]
+	cmds = ["make_cia", "-v", "-o", "%s-game-conv.cia" % tid, "--savesize=%s" % savesize, "--content0=%s-game-conv.cxi" % tid, "--id_0=0", "--index_0=0"]
 	if manualcfa_offset != 0:
 		cmds.extend(["--content1=%s-manual.cfa" % tid, "--index_1=1"])
 	if dlpchildcfa_offset != 0:
