@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-import sys, os, binascii, math, subprocess, errno, hashlib, itertools
+import sys, os, binascii, math, subprocess, errno, hashlib, itertools, glob
 
 # default directories (relative to current dir unless you use absolute paths)
 # leave as "" for current working directory
@@ -8,7 +8,7 @@ xorpad_directory = ""
 output_directory = ""
 
 #################
-version = "2.11"
+version = "2.12"
 
 helptext = """3dsconv.py ~ version %s
 https://github.com/ihaveamac/3dsconv
@@ -86,12 +86,6 @@ def docleanup(tid):
 	silentremove("work/%s-game-conv.cxi" % tid)
 	silentremove("work/%s-manual.cfa" % tid)
 	silentremove("work/%s-dlpchild.cfa" % tid)
-	# silentremove("work/%s-ncchheader.bin" % tid)
-	# silentremove("work/%s-exheader.bin" % tid)
-	# silentremove("work/%s-exefs.bin" % tid)
-	# silentremove("work/%s-romfs.bin" % tid)
-	# silentremove("work/%s-logo.bcma.lz" % tid)
-	# silentremove("work/%s-plain.bin" % tid)
 
 if len(sys.argv) < 2:
 	print(helptext % (version, ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory), ("current directory" if output_directory == "" else "'%s'" % output_directory)))
@@ -115,15 +109,6 @@ except OSError:
 	if not os.path.isdir("work"):
 		raise
 
-# probably should've used argparse
-for arg in sys.argv[1:]:
-	if arg[:2] != "--":
-		continue
-	if arg[:10] == "--xorpads=":
-		xorpad_directory = arg[10:]
-	if arg[:9] == "--output=":
-		output_directory = arg[9:]
-
 if output_directory!= "":
 	try:
 		os.makedirs(output_directory)
@@ -143,13 +128,6 @@ def ncchinfoadd(rom):
 	ncchinfolist.extend([tid[::-1] + "\x01\x00\x00\x00\x00\x00\x00\x00" + keyY + "\x01\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + tid + ("/%s.Main.exheader.xorpad" % binascii.hexlify(tid[::-1]).upper()).ljust(112, "\x00")])
 	romf.close()
 
-# used from http://stackoverflow.com/questions/4566498/python-file-iterator-over-a-binary-file-with-newer-idiom
-#def read_in_chunks(infile, chunk_size=buffersize):
-#	chunk = infile.read(chunk_size)
-#	while chunk:
-#		yield chunk
-#		chunk = infile.read(chunk_size)
-
 # used from http://www.gossamer-threads.com/lists/python/python/163938
 def bytes2int(string):
 	i = 0
@@ -160,13 +138,27 @@ def bytes2int(string):
 totalroms = 0
 processedroms = 0
 
-for rom in sys.argv[1:]:
-	if rom[:2] == "--":
-		continue
+# probably should've used argparse
+files = []
+for arg in sys.argv[1:]:
+	if arg[:2] != "--":
+		toadd = glob.glob(arg)
+		if len(toadd) == 0:
+			print("! %s doesn't exist." % arg)
+			totalroms += 1
+		else:
+			files.extend(toadd)
+	elif arg[:10] == "--xorpads=":
+		xorpad_directory = arg[10:]
+	elif arg[:9] == "--output=":
+		output_directory = arg[9:]
+
+if files == []:
+	print("! no inputted files exist.")
+	sys.exit(1)
+
+for rom in files:
 	totalroms += 1
-	if not os.path.isfile(rom):
-		print("! %s doesn't exist." % rom)
-		continue
 	romname = os.path.basename(os.path.splitext(rom)[0])
 	cianame = os.path.join(output_directory, romname+".cia")
 	if not overwrite and os.path.isfile(cianame):
