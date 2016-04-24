@@ -1,4 +1,9 @@
 #!/usr/bin/env python2
+
+# 3dsconv.py by ihaveamac
+# license: MIT License
+# https://github.com/ihaveamac/3dsconv
+
 import sys
 import os
 import binascii
@@ -14,6 +19,8 @@ import glob
 # using --xorpads= or --output= will override these
 xorpad_directory = ""
 output_directory = ""
+
+workdir = "work"  # temporary folder to store files in
 
 #################
 version = "2.13d"
@@ -123,6 +130,8 @@ if "--force" not in sys.argv:
 ncchinfolist = []
 
 
+# see this for ncchinfo.bin format:
+# https://github.com/d0k3/Decrypt9WIP/blob/master/scripts/ncchinfo_gen.py
 # this only does ExHeader stuff
 # so I think I can get away with hard-coding some things
 def ncchinfoadd(rom_ncchinfo):
@@ -157,16 +166,23 @@ for arg in sys.argv[1:]:
             print("! %s doesn't exist." % arg)
             totalroms += 1
         else:
-            files.extend(toadd)
+            for inputf in toadd:
+                romname = os.path.basename(os.path.splitext(inputf)[0])
+                cianame = os.path.join(output_directory, romname + ".cia")
+                if not overwrite and os.path.isfile(cianame):
+                    print("! %s already exists." % cianame)
+                    print("  to force conversion and overwriting this, use --overwrite")
+                    continue
+                files.append([inputf, romname, cianame])
     elif arg[:10] == "--xorpads=":
         xorpad_directory = arg[10:]
     elif arg[:9] == "--output=":
         output_directory = arg[9:]
 
 try:
-    os.makedirs("work")
+    os.makedirs(workdir)
 except OSError:
-    if not os.path.isdir("work"):
+    if not os.path.isdir(workdir):
         raise
 
 if output_directory != "":
@@ -181,16 +197,9 @@ if not files:
     sys.exit(1)
 
 for rom in files:
+    print(rom[0])
     totalroms += 1
-    romname = os.path.basename(os.path.splitext(rom)[0])
-    cianame = os.path.join(output_directory, romname + ".cia")
-    if not overwrite and os.path.isfile(cianame):
-        print("! %s already exists." % cianame)
-        print("  to force conversion and overwriting this, use --overwrite")
-        continue
-    if genncchinfo and genncchall:
-        ncchinfoadd(rom)
-    romf = open(rom, "rb")
+    romf = open(rom[0], "rb")
     romf.seek(0x100)
     ncsdmagic = romf.read(4)
     romf.seek(0x108)
@@ -199,15 +208,17 @@ for rom in files:
     romf.seek(0x418F)
     decrypted = int(binascii.hexlify(romf.read(1))) & 0x04
     if ncsdmagic != "NCSD":
-        print("! %s is probably not a rom." % rom)
+        print("! %s is probably not a Nintendo 3DS ROM." % rom[0])
         print("  NCSD magic not found.")
         romf.close()
         continue
     if noconvert:
         print("- not converting %s (%s) because --noconvert was used" %
-              (romname, "decrypted" if decrypted else "encrypted"))
+              (rom[1], "decrypted" if decrypted else "encrypted"))
         if cleanup:
             docleanup(tid)
+        if genncchinfo and genncchall:
+            ncchinfoadd(rom[0])
         romf.close()
         continue
     if not decrypted:
@@ -215,7 +226,8 @@ for rom in files:
             print("! %s couldn't be found." % xorpad)
             if not genncchinfo:
                 print("  use --gen-ncchinfo with this rom.")
-            ncchinfoadd(rom)
+            else:
+                ncchinfoadd(rom[0])
             romf.close()
             continue
 
@@ -244,14 +256,15 @@ for rom in files:
             print("! %s is not the correct xorpad, or is corrupt." % xorpad)
             if not genncchinfo:
                 print("  try using --gen-ncchinfo again or find the correct xorpad.")
-            ncchinfoadd(rom)
+            else:
+                ncchinfoadd(rom[0])
         print("  ExHeader SHA-256 hash check failed.")
         romf.close()
         if cleanup:
             docleanup(tid)
         continue
 
-    print("- processing: %s (%s)" % (romname, "decrypted" if decrypted else "encrypted"))
+    print("- processing: %s (%s)" % (rom[1], "decrypted" if decrypted else "encrypted"))
 
     print_v("- patching ExHeader")
     exh_list = list(exh)
@@ -270,7 +283,7 @@ for rom in files:
     new_exh_hash = hashlib.sha256(exh).hexdigest()
     romf.seek(0x124)
     gamecxi_size = bytes2int(romf.read(0x4)[::-1]) * mu
-    gamecxi = open("work/%s-game-conv.cxi" % tid, "wb")
+    gamecxi = open(os.path.join(workdir, "%s-game-conv.cxi" % tid), "wb")
     left = gamecxi_size
 
     # Game Executable CXI
@@ -291,7 +304,7 @@ for rom in files:
         print_v("- extracting Manual CFA")
         manualcfa_size = bytes2int(romf.read(0x4)[::-1]) * mu
         romf.seek(manualcfa_offset)
-        manualcfa = open("work/%s-manual.cfa" % tid, "wb")
+        manualcfa = open(os.path.join(workdir, "%s-manual.cfa" % tid), "wb")
         left = manualcfa_size
         for __ in itertools.repeat(0, int(math.floor((manualcfa_size / readsize)) + 1)):
             toread = min(readsize, left)
@@ -309,7 +322,7 @@ for rom in files:
         print_v("- extracting Download Play child container CFA")
         dlpchildcfa_size = bytes2int(romf.read(0x4)[::-1]) * mu
         romf.seek(dlpchildcfa_offset)
-        dlpchildcfa = open("work/%s-dlpchild.cfa" % tid, "wb")
+        dlpchildcfa = open(os.path.join(workdir, "%s-dlpchild.cfa" % tid), "wb")
         left = dlpchildcfa_size
         for __ in itertools.repeat(0, int(math.floor((dlpchildcfa_size / readsize)) + 1)):
             toread = min(readsize, left)
@@ -331,7 +344,7 @@ for rom in files:
     gamecxi.close()
 
     print_v("- building CIA")
-    os.chdir("work")  # not doing this breaks make_cia's ability to properly include Manual/DLP Child for some reason
+    os.chdir(workdir)  # not doing this breaks make_cia's ability to properly include Manual/DLP Child for some reason
     cmds = ["make_cia", "-v", "-o", "%s-game-conv.cia" % tid, "--savesize=%s" % savesize,
             "--content0=%s-game-conv.cxi" % tid, "--id_0=0", "--index_0=0"]
     if manualcfa_offset != 0:
@@ -342,10 +355,13 @@ for rom in files:
     os.chdir("..")
 
     # apparently if the file exists, it will throw an error on Windows
-    silentremove(cianame)
-    os.rename("work/%s-game-conv.cia" % tid, cianame)
+    silentremove(rom[2])
+    os.rename(os.path.join(workdir, "%s-game-conv.cia" % tid), rom[2])
     if cleanup:
         docleanup(tid)
+
+    if genncchinfo and genncchall:
+        ncchinfoadd(rom[0])
 
     processedroms += 1
 
