@@ -1,5 +1,13 @@
 #!/usr/bin/env python2
-import sys, os, binascii, math, subprocess, errno, hashlib, itertools, glob
+import sys
+import os
+import binascii
+import math
+import subprocess
+import errno
+import hashlib
+import itertools
+import glob
 
 # default directories (relative to current dir unless you use absolute paths)
 # leave as "" for current working directory
@@ -37,7 +45,7 @@ usage: 3dsconv.py [options] game.3ds [game.3ds ...]
 mu = 0x200  # media unit
 readsize = 8 * 1024 * 1024  # used from padxorer
 
-cleanup = not "--nocleanup" in sys.argv
+cleanup = "--nocleanup" not in sys.argv
 verbose = "--verbose" in sys.argv
 overwrite = "--overwrite" in sys.argv
 genncchinfo = "--gen-ncchinfo" in sys.argv
@@ -88,11 +96,11 @@ def silentremove(filename):
             raise  # re-raise exception if a different error occured
 
 
-def docleanup(tid):
-    silentremove("work/%s-game-orig.cxi" % tid)
-    silentremove("work/%s-game-conv.cxi" % tid)
-    silentremove("work/%s-manual.cfa" % tid)
-    silentremove("work/%s-dlpchild.cfa" % tid)
+def docleanup(tid_dc):
+    silentremove("work/%s-game-orig.cxi" % tid_dc)
+    silentremove("work/%s-game-conv.cxi" % tid_dc)
+    silentremove("work/%s-manual.cfa" % tid_dc)
+    silentremove("work/%s-dlpchild.cfa" % tid_dc)
 
 
 if len(sys.argv) < 2:
@@ -100,7 +108,7 @@ if len(sys.argv) < 2:
                       ("current directory" if output_directory == "" else "'%s'" % output_directory)))
     sys.exit(1)
 
-if not "--force" in sys.argv:
+if "--force" not in sys.argv:
     fail = False
     if not testcommand("make_cia"):
         print("! make_cia doesn't appear to be in your PATH.")
@@ -117,24 +125,24 @@ ncchinfolist = []
 
 # this only does ExHeader stuff
 # so I think I can get away with hard-coding some things
-def ncchinfoadd(rom):
-    romf = open(rom, "rb")
-    romf.seek(0x108)
-    tid = romf.read(8)
-    romf.seek(0x4000)
-    keyY = romf.read(16)
-    ncchinfolist.extend([tid[
-                         ::-1] + "\x01\x00\x00\x00\x00\x00\x00\x00" + keyY + "\x01\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + tid + (
-                         "/%s.Main.exheader.xorpad" % binascii.hexlify(tid[::-1]).upper()).ljust(112, "\x00")])
-    romf.close()
+def ncchinfoadd(rom_ncchinfo):
+    romf_ncchinfo = open(rom_ncchinfo, "rb")
+    romf_ncchinfo.seek(0x108)
+    tid_ncchinfo = romf_ncchinfo.read(8)
+    romf_ncchinfo.seek(0x4000)
+    keyy_ncchinfo = romf_ncchinfo.read(16)
+    ncchinfolist.extend([tid[::-1] + "\x01\x00\x00\x00\x00\x00\x00\x00" + keyy_ncchinfo + "\x01\x00\x00\x00"
+                         + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + tid + (
+                         "/%s.Main.exheader.xorpad" % binascii.hexlify(tid_ncchinfo[::-1]).upper()).ljust(112, "\x00")])
+    romf_ncchinfo.close()
 
 
 # used from http://www.gossamer-threads.com/lists/python/python/163938
 def bytes2int(string):
-    i = 0
+    i_s = 0
     for ch in string:
-        i = 256 * i + ord(ch)
-    return i
+        i_s = 256 * i_s + ord(ch)
+    return i_s
 
 
 totalroms = 0
@@ -168,7 +176,7 @@ if output_directory != "":
         if not os.path.isdir(output_directory):
             raise
 
-if files == []:
+if not files:
     print("! no inputted files exist.")
     sys.exit(1)
 
@@ -196,8 +204,8 @@ for rom in files:
         romf.close()
         continue
     if noconvert:
-        print(
-        "- not converting %s (%s) because --noconvert was used" % (romname, "decrypted" if decrypted else "encrypted"))
+        print("- not converting %s (%s) because --noconvert was used" %
+              (romname, "decrypted" if decrypted else "encrypted"))
         if cleanup:
             docleanup(tid)
         romf.close()
@@ -245,8 +253,6 @@ for rom in files:
 
     print("- processing: %s (%s)" % (romname, "decrypted" if decrypted else "encrypted"))
 
-    # runcommand(["3dstool", "-xvtf", "cxi", "work/%s-game-orig.cxi" % tid, "--exefs", "work/%s-exefs.bin" % tid, "--romfs", "work/%s-romfs.bin" % tid, "--plain", "work/%s-plain.bin" % tid, "--logo", "work/%s-logo.bcma.lz" % tid])
-
     print_v("- patching ExHeader")
     exh_list = list(exh)
     x = exh_list[0xD]
@@ -270,7 +276,7 @@ for rom in files:
     # Game Executable CXI
     romf.seek(0x4000)
     print_v("- extracting Game Executable CXI")
-    for _ in itertools.repeat(0, int(math.floor((gamecxi_size / readsize)) + 1)):
+    for __ in itertools.repeat(0, int(math.floor((gamecxi_size / readsize)) + 1)):
         toread = min(readsize, left)
         gamecxi.write(romf.read(toread))
         left -= readsize
@@ -287,7 +293,7 @@ for rom in files:
         romf.seek(manualcfa_offset)
         manualcfa = open("work/%s-manual.cfa" % tid, "wb")
         left = manualcfa_size
-        for _ in itertools.repeat(0, int(math.floor((manualcfa_size / readsize)) + 1)):
+        for __ in itertools.repeat(0, int(math.floor((manualcfa_size / readsize)) + 1)):
             toread = min(readsize, left)
             manualcfa.write(romf.read(toread))
             left -= readsize
@@ -305,7 +311,7 @@ for rom in files:
         romf.seek(dlpchildcfa_offset)
         dlpchildcfa = open("work/%s-dlpchild.cfa" % tid, "wb")
         left = dlpchildcfa_size
-        for _ in itertools.repeat(0, int(math.floor((dlpchildcfa_size / readsize)) + 1)):
+        for __ in itertools.repeat(0, int(math.floor((dlpchildcfa_size / readsize)) + 1)):
             toread = min(readsize, left)
             dlpchildcfa.write(romf.read(toread))
             left -= readsize
