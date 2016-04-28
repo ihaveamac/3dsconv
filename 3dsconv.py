@@ -23,7 +23,7 @@ output_directory = ""
 workdir = "work"  # temporary folder to store files in
 
 #################
-version = "2.13d"
+version = "2.13"
 
 helptext = """3dsconv.py ~ version %s
 "convert" a Nintendo 3DS ROM to a CIA (CTR Importable Archive)
@@ -151,8 +151,8 @@ if "--force" not in sys.argv:
     fail = False
     if not testcommand("make_cia"):
         print("! make_cia doesn't appear to be in your PATH.")
-        print("  you can build the source here:")
-        print("  https://github.com/ihaveamac/ctr_toolkit")
+        print("  you can find releases here:")
+        print("  https://github.com/ihaveamac/ctr_toolkit/releases")
         fail = True
     if fail:
         print("- if you want to force the script to run,")
@@ -216,7 +216,9 @@ for rom in files:
     romf.seek(0x108)
     tid = binascii.hexlify(romf.read(8)[::-1])
     xorpad = os.path.join(xorpad_directory, "%s.Main.exheader.xorpad" % tid.upper())
-    romf.seek(0x418F)
+    romf.seek(0x120)
+    gamecxi_offset = bytes2int(romf.read(0x4)[::-1]) * mu
+    romf.seek(gamecxi_offset + 0x18F)
     decrypted = int(binascii.hexlify(romf.read(1))) & 0x04
     print("- processing: %s (%s)" % (rom[1], "decrypted" if decrypted else "encrypted"))
     if noconvert:
@@ -282,8 +284,7 @@ for rom in files:
     new_exh_hash = hashlib.sha256(exh).hexdigest()
 
     # Game Executable CXI
-    romf.seek(0x120)
-    gamecxi_offset = bytes2int(romf.read(0x4)[::-1]) * mu
+    # the offset is found earlier
     print_v("- extracting Game Executable CXI")
     romf.seek(0x124)
     gamecxi_size = bytes2int(romf.read(0x4)[::-1]) * mu
