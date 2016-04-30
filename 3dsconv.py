@@ -129,7 +129,7 @@ def ncchinfoadd(rom_ncchinfo):
         romf_ncchinfo.seek(0x108)
         tid_ncchinfo = romf_ncchinfo.read(8)
         romf_ncchinfo.seek(0x120)
-        romf_ncchinfo.seek(bytes2int(romf.read(0x4)[::-1]) * mu)  # first partition offset
+        romf_ncchinfo.seek(bytes2int(romf_ncchinfo.read(0x4)[::-1]) * mu)  # first partition offset
         keyy_ncchinfo = romf_ncchinfo.read(16)
         ncchinfolist.append(tid_ncchinfo[::-1] + "\x01\x00\x00\x00\x00\x00\x00\x00" + keyy_ncchinfo + "\x01\x00\x00\x00"
                             + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + tid_ncchinfo +
