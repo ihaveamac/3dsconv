@@ -23,7 +23,7 @@ output_directory = ""
 workdir = "work"  # temporary folder to store files in
 
 #################
-version = "2.13"
+version = "2.14"
 
 helptext = """3dsconv.py ~ version %s
 "convert" a Nintendo 3DS ROM to a CIA (CTR Importable Archive)
