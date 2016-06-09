@@ -23,7 +23,7 @@ output_directory = ""
 workdir = "work"  # temporary folder to store files in
 
 #################
-version = "2.14"
+version = "2.15"
 
 helptext = """3dsconv.py ~ version %s
 "convert" a Nintendo 3DS ROM to a CIA (CTR Importable Archive)
@@ -125,6 +125,7 @@ ncchinfo_used_roms = []
 # so I think I can get away with hard-coding some things
 def ncchinfoadd(rom_ncchinfo):
     if rom_ncchinfo not in ncchinfolist:
+        print_v("- adding %s to ncchinfo.bin" % rom_ncchinfo)
         romf_ncchinfo = open(rom_ncchinfo, "rb")
         romf_ncchinfo.seek(0x108)
         tid_ncchinfo = romf_ncchinfo.read(8)
@@ -227,12 +228,16 @@ for rom in files:
         if cleanup:
             docleanup(tid)
         romf.close()
+        if genncchinfo:
+            ncchinfoadd(rom[0])
         continue
     if not decrypted:
         if not os.path.isfile(xorpad):
             print("! %s couldn't be found." % xorpad)
             if not genncchinfo:
                 print("  use --gen-ncchinfo with this rom.")
+            else:
+                ncchinfoadd(rom[0])
             romf.close()
             continue
 
@@ -367,9 +372,6 @@ for rom in files:
     os.rename(os.path.join(workdir, "%s-game-conv.cia" % tid), rom[2])
     if cleanup:
         docleanup(tid)
-
-    if genncchinfo and genncchall:
-        ncchinfoadd(rom[0])
 
     processedroms += 1
 
