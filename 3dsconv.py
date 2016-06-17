@@ -52,7 +52,7 @@ usage: 3dsconv.py [options] game.3ds [game.3ds ...]
 if len(sys.argv) < 2:
     print(helptext % (version, ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory),
                       ("current directory" if output_directory == "" else "'%s'" % output_directory),
-                      ("the current directory" if output_directory == "" else "'%s'" % output_directory)))
+                      ("the current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory)))
     sys.exit(1)
 
 mu = 0x200  # media unit
