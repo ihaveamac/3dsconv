@@ -378,7 +378,7 @@ for rom in files:
 if totalroms == 0:
     print(helptext % (version, ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory),
                       ("current directory" if output_directory == "" else "'%s'" % output_directory),
-                      ("the current directory" if output_directory == "" else "'%s'" % output_directory)))
+                      ("the current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory)))
     sys.exit(1)
 else:
     if genncchinfo and len(ncchinfolist) != 0:
