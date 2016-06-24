@@ -31,7 +31,8 @@ python2 3dsconv.py [options] game.3ds [game.3ds ...]
 * `--verbose` - print more information
 
 ## Converting .py to standalone .exe (Windows)
-Using [py2exe](http://www.py2exe.org/), you can 
+Using [py2exe](http://www.py2exe.org/), you can pack the script into a Windows executable, for use on a computer without Python, or for easy use in the Windows command prompt.
+
 * Clone or download the repository.
 * Open Windows command prompt (`cmd.exe`) in the current directory.
 * Run `python setup.py py2exe`. Make sure Python 2.7 is being used.
