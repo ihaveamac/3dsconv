@@ -2,9 +2,12 @@
 *.3ds
 *.cia
 *.xorpad
+*.exe
 ncchinfo.bin
 work/
 test/
+build/
+dist/
 
 # Created by .ignore support plugin (hsz.mobi)
 ### JetBrains template

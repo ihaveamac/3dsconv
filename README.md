@@ -31,12 +31,11 @@ python2 3dsconv.py [options] game.3ds [game.3ds ...]
 * `--verbose` - print more information
 
 ## Converting .py to standalone .exe (Windows)
-If you'd like, you can convert 3dsconv.py into a Windows executable. This requires you to have py2exe installed. It can be found [here](http://www.py2exe.org/).
-
+Using [py2exe](http://www.py2exe.org/), you can 
 * Clone or download the repository.
-* Open a command prompt (cmd.exe) and `cd` into the relevant folder.
-* Run `setup.py py2exe`
-* The .exe (and its dependencies) will be in `/<folder>/dist` after it finishes. 
+* Open Windows command prompt (`cmd.exe`) in the current directory.
+* Run `python setup.py py2exe`. Make sure Python 2.7 is being used.
+* `3dsconv.exe` and its dependencies will be in `dist` after it finishes. 
 
 ## License / Credits
 * `3dsconv.py` is under the MIT license.
