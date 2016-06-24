@@ -235,7 +235,7 @@ for rom in files:
         if not os.path.isfile(xorpad):
             print("! %s couldn't be found." % xorpad)
             if not genncchinfo:
-                print("  use --gen-ncchinfo with this rom.")
+                print("  use --gen-ncchinfo with this ROM.")
             else:
                 ncchinfoadd(rom[0])
             romf.close()

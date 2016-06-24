@@ -1,20 +1,13 @@
 # 3dsconv
-`3dsconv.py` is a Python script that "converts" a Nintendo 3DS ROM (.3ds, .cci) to an installable CIA (CTR Importable Archive).
+`3dsconv.py` is a Python script that "converts" a Nintendo 3DS game card dump/image (.3ds/.cci) to an installable CIA (CTR Importable Archive).
 
-It supports using only an ExHeader XORpad, as well as decrypted ROMs. The ExHeader XORpad name format is `<TITLEID>.Main.exheader.xorpad`.
+3dsconv supports using only an ExHeader XORpad, as well as decrypted ROMs. The ExHeader XORpad name format is `<TITLEID>.Main.exheader.xorpad`.
 
-It requires [make_cia](https://github.com/ihaveamac/ctr_toolkit) in the PATH.
+[make_cia](https://github.com/ihaveamac/ctr_toolkit) in the PATH, or in the same folder on Windows systems.
 
-This does not work with Python 3.x.
+This does not work with Python 3.
 
-## Generating XORpads
-If your ROM is encrypted, you must generate ExHeader XORpads with a 3DS system and the ability to use Decrypt9.
-
-1. Use `--gen-ncchinfo` with the ROMs you want to generate them for.
-2. Place `ncchinfo.bin` at the root or `/Decrypt9` on your 3DS SD card.
-3. Run Decrypt9, and go to "XORpad Generator Options" and "NCCH Padgen".
-
-XORpads can then be placed anywhere (use `--xorpads=<dir>` if it's not the current working directory)
+The recommended tool for dumping game cards is [Decrypt9WIP](https://github.com/d0k3/Decrypt9WIP). The recommended option is "Dump & Decrypt Cart (slim)", which dumps a decrypted and trimmed image.
 
 ## Usage
 ```bash
@@ -30,13 +23,24 @@ python2 3dsconv.py [options] game.3ds [game.3ds ...]
 * `--nocleanup` - don't remove temporary files once finished
 * `--verbose` - print more information
 
+## Generating XORpads
+If your ROM is encrypted, you must generate ExHeader XORpads with a 3DS system and the ability to use [Decrypt9](https://github.com/d0k3/Decrypt9WIP).
+
+1. Use `--gen-ncchinfo` with the ROMs you want to generate them for.  
+   By default, only ROMs without XORpads will be added into `ncchinfo.bin`. To add all given ROMs, add `--gen-ncch-all`.
+2. Place `ncchinfo.bin` at the root or `/Decrypt9` on your 3DS SD card.
+3. Run Decrypt9, and go to "XORpad Generator Options" and "NCCH Padgen".
+
+XORpads can then be placed anywhere (use `--xorpads=<dir>` if it's not the current working directory)
+
 ## Converting .py to standalone .exe (Windows)
 Using [py2exe](http://www.py2exe.org/), you can pack the script into a Windows executable, for use on a computer without Python, or for easy use in the Windows command prompt.
 
-* Clone or download the repository.
-* Open Windows command prompt (`cmd.exe`) in the current directory.
-* Run `python setup.py py2exe`. Make sure Python 2.7 is being used.
-* `3dsconv.exe` and its dependencies will be in `dist` after it finishes. 
+1. Clone or download the repository.
+2. Open Windows command prompt (`cmd.exe`) in the current directory.
+3. Edit `setup.py` if wanted.
+4. Run `python setup.py py2exe`. Make sure Python 2.7 is being used.
+5. `3dsconv.exe` and its dependencies will be in `dist` after it finishes. 
 
 ## License / Credits
 * `3dsconv.py` is under the MIT license.
