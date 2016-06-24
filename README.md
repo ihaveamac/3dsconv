@@ -30,6 +30,14 @@ python2 3dsconv.py [options] game.3ds [game.3ds ...]
 * `--nocleanup` - don't remove temporary files once finished
 * `--verbose` - print more information
 
+## Converting .py to standalone .exe (Windows)
+If you'd like, you can convert 3dsconv.py into a Windows executable. This requires you to have py2exe installed. It can be found [here](http://www.py2exe.org/).
+
+* Clone or download the repository.
+* Open a command prompt (cmd.exe) and `cd` into the relevant folder.
+* Run `setup.py py2exe`
+* The .exe (and its dependencies) will be in `/<folder>/dist` after it finishes. 
+
 ## License / Credits
 * `3dsconv.py` is under the MIT license.
 * `ncchinfo.bin` generation is based on [Decrypt9WIP's `ncchinfo_gen.py`](https://github.com/d0k3/Decrypt9WIP/blob/master/scripts/ncchinfo_gen.py).
