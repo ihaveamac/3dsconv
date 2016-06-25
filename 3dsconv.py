@@ -13,6 +13,7 @@ import errno
 import hashlib
 import itertools
 import glob
+import struct
 
 # default directories (relative to current dir unless you use absolute paths)
 # leave as "" for current working directory
@@ -23,7 +24,7 @@ output_directory = ""
 workdir = "work"  # temporary folder to store files in
 
 #################
-version = "2.16"
+version = "2.2"
 
 helptext = """3dsconv.py ~ version %s
 "convert" a Nintendo 3DS ROM to a CIA (CTR Importable Archive)
@@ -38,11 +39,11 @@ usage: 3dsconv.py [options] game.3ds [game.3ds ...]
   --gen-ncchinfo   - generate ncchinfo.bin for ROMs that don't have a valid xorpad
   --gen-ncch-all   - use with --gen-ncchinfo to generate an ncchinfo.bin for all ROMs
   --noconvert      - don't convert ROMs, useful if you just want to generate ncchinfo.bin
-  --force          - run even if make_cia isn't found
+  --force          - run even if makerom isn't found
   --nocleanup      - don't remove temporary files once finished
   --verbose        - print more information
 
-- make_cia should exist in your PATH
+- makerom should exist in your PATH
 - encrypted roms require an ExHeader XORpad with the name format:
     \"<TITLEID>.Main.exheader.xorpad\"
   XORpads should be in %s or the directory specified by --xorpads=<dir>
@@ -115,6 +116,12 @@ def docleanup(tid_dc):
     silentremove("work/%s-manual.cfa" % tid_dc)
     silentremove("work/%s-dlpchild.cfa" % tid_dc)
 
+
+# based on http://stackoverflow.com/questions/1766535/bit-hack-round-off-to-multiple-of-8/1766566#1766566
+def roundup(x):
+    return ((int(x, 16) + 63) >> 6) << 6
+
+
 ncchinfolist = []
 ncchinfo_used_roms = []
 
@@ -126,17 +133,16 @@ ncchinfo_used_roms = []
 def ncchinfoadd(rom_ncchinfo):
     if rom_ncchinfo not in ncchinfolist:
         print_v("- adding %s to ncchinfo.bin" % rom_ncchinfo)
-        romf_ncchinfo = open(rom_ncchinfo, "rb")
-        romf_ncchinfo.seek(0x108)
-        tid_ncchinfo = romf_ncchinfo.read(8)
-        romf_ncchinfo.seek(0x120)
-        romf_ncchinfo.seek(bytes2int(romf_ncchinfo.read(0x4)[::-1]) * mu)  # first partition offset
-        keyy_ncchinfo = romf_ncchinfo.read(16)
-        ncchinfolist.append(tid_ncchinfo[::-1] + "\x01\x00\x00\x00\x00\x00\x00\x00" + keyy_ncchinfo + "\x01\x00\x00\x00"
-                            + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + tid_ncchinfo +
-                            ("/%s.Main.exheader.xorpad" % binascii.hexlify(tid_ncchinfo[::-1]).upper())
-                            .ljust(112, "\x00"))
-        romf_ncchinfo.close()
+        with open(rom_ncchinfo, "rb") as romf_ncchinfo:
+            romf_ncchinfo.seek(0x108)
+            tid_ncchinfo = romf_ncchinfo.read(8)
+            romf_ncchinfo.seek(0x120)
+            romf_ncchinfo.seek(bytes2int(romf_ncchinfo.read(0x4)[::-1]) * mu)  # first partition offset
+            keyy_ncchinfo = romf_ncchinfo.read(16)
+            ncchinfolist.append(tid_ncchinfo[::-1] + "\x01\x00\x00\x00\x00\x00\x00\x00" + keyy_ncchinfo +
+                                "\x01\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" +
+                                tid_ncchinfo + ("/%s.Main.exheader.xorpad" % binascii.hexlify(tid_ncchinfo[::-1])
+                                                .upper()).ljust(112, "\x00"))
         ncchinfo_used_roms.append(rom_ncchinfo)
 
 
@@ -150,10 +156,10 @@ def bytes2int(string):
 
 if "--force" not in sys.argv:
     fail = False
-    if not testcommand("make_cia"):
-        print("! make_cia doesn't appear to be in your PATH.")
+    if not testcommand("makerom"):
+        print("! makerom doesn't appear to be in your PATH.")
         print("  you can find releases here:")
-        print("  https://github.com/ihaveamac/ctr_toolkit/releases")
+        print("  https://github.com/profi200/Project_CTR/releases")
         fail = True
     if fail:
         print("- if you want to force the script to run,")
@@ -249,9 +255,8 @@ for rom in files:
     xor = ""
     if not decrypted:
         print_v("- decrypting ExHeader")
-        xorfile = open(xorpad, "rb")
-        xor = xorfile.read(0x400)
-        xorfile.close()
+        with open(xorpad, "rb") as xorfile:
+            xor = xorfile.read(0x400)
         xored = ""
         for byte_f, byte_x in zip(exh, xor):
             xored += chr(ord(byte_f) ^ ord(byte_x))
@@ -285,7 +290,8 @@ for rom in files:
     exh_list[0xD:0xE] = z
     exh = "".join(exh_list)
     # there really has to be a better way to do this...
-    savesize = str(int(binascii.hexlify(exh[0x1C0:0x1C8][::-1]), 16) / 1024)
+    # savesize = str(int(binascii.hexlify(exh[0x1C0:0x1C8][::-1]), 16) / 1024)
+    savesize = exh[0x1C0:0x1C8]
     new_exh_hash = hashlib.sha256(exh).hexdigest()
 
     # Game Executable CXI
@@ -296,14 +302,22 @@ for rom in files:
     print_v("  offset: %s" % hex(gamecxi_offset))
     print_v("  size:   %s" % hex(gamecxi_size))
     romf.seek(gamecxi_offset)
-    gamecxi = open(os.path.join(workdir, "%s-game-conv.cxi" % tid), "wb")
     left = gamecxi_size
-    for __ in itertools.repeat(0, int(math.floor((gamecxi_size / readsize)) + 1)):
-        toread = min(readsize, left)
-        gamecxi.write(romf.read(toread))
-        left -= readsize
-        if left <= 0:
-            break
+    with open(os.path.join(workdir, "%s-game-conv.cxi" % tid), "wb") as gamecxi:
+        for __ in itertools.repeat(0, int(math.floor((gamecxi_size / readsize)) + 1)):
+            toread = min(readsize, left)
+            gamecxi.write(romf.read(toread))
+            left -= readsize
+            if left <= 0:
+                break
+        gamecxi.seek(0x160)
+        gamecxi.write(hashlib.sha256(exh).digest())
+        # re-encrypt exheader and write the byte at 0x20D
+        gamecxi.seek(0x20D)
+        if decrypted:
+            gamecxi.write(exh[0xD:0xE])
+        else:
+            gamecxi.write(chr(ord(exh[0xD:0xE]) ^ ord(xor[0xD:0xE])))
 
     # Manual CFA
     romf.seek(0x128)
@@ -315,15 +329,14 @@ for rom in files:
         print_v("  offset: %s" % hex(manualcfa_offset))
         print_v("  size:   %s" % hex(manualcfa_size))
         romf.seek(manualcfa_offset)
-        manualcfa = open(os.path.join(workdir, "%s-manual.cfa" % tid), "wb")
         left = manualcfa_size
-        for __ in itertools.repeat(0, int(math.floor((manualcfa_size / readsize)) + 1)):
-            toread = min(readsize, left)
-            manualcfa.write(romf.read(toread))
-            left -= readsize
-            if left <= 0:
-                break
-        manualcfa.close()
+        with open(os.path.join(workdir, "%s-manual.cfa" % tid), "wb") as manualcfa:
+            for __ in itertools.repeat(0, int(math.floor((manualcfa_size / readsize)) + 1)):
+                toread = min(readsize, left)
+                manualcfa.write(romf.read(toread))
+                left -= readsize
+                if left <= 0:
+                    break
 
     # Download Play child container CFA
     romf.seek(0x130)
@@ -335,37 +348,50 @@ for rom in files:
         print_v("  offset: %s" % hex(dlpchildcfa_offset))
         print_v("  size:   %s" % hex(dlpchildcfa_size))
         romf.seek(dlpchildcfa_offset)
-        dlpchildcfa = open(os.path.join(workdir, "%s-dlpchild.cfa" % tid), "wb")
         left = dlpchildcfa_size
-        for __ in itertools.repeat(0, int(math.floor((dlpchildcfa_size / readsize)) + 1)):
-            toread = min(readsize, left)
-            dlpchildcfa.write(romf.read(toread))
-            left -= readsize
-            if left <= 0:
-                break
-        dlpchildcfa.close()
+        with open(os.path.join(workdir, "%s-dlpchild.cfa" % tid), "wb") as dlpchildcfa:
+            for __ in itertools.repeat(0, int(math.floor((dlpchildcfa_size / readsize)) + 1)):
+                toread = min(readsize, left)
+                dlpchildcfa.write(romf.read(toread))
+                left -= readsize
+                if left <= 0:
+                    break
     romf.close()
-
-    gamecxi.seek(0x160)
-    gamecxi.write(hashlib.sha256(exh).digest())
-    # re-encrypt exheader and write the byte at 0x20D
-    gamecxi.seek(0x20D)
-    if decrypted:
-        gamecxi.write(exh[0xD:0xE])
-    else:
-        gamecxi.write(chr(ord(exh[0xD:0xE]) ^ ord(xor[0xD:0xE])))
-    gamecxi.close()
 
     print_v("- building CIA")
     os.chdir(workdir)  # not doing this breaks make_cia's ability to properly include Manual/DLP Child for some reason
-    cmds = ["make_cia", "-v", "-o", "%s-game-conv.cia" % tid, "--savesize=%s" % savesize,
-            "--content0=%s-game-conv.cxi" % tid, "--id_0=0", "--index_0=0"]
-    if manualcfa_offset != 0:
-        cmds.extend(["--content1=%s-manual.cfa" % tid, "--index_1=1"])
-    if dlpchildcfa_offset != 0:
-        cmds.extend(["--content2=%s-dlpchild.cfa" % tid, "--index_2=2"])
+    cmds = ["makerom", "-v", "-f", "cia", "-o", "%s-game-conv.cia" % tid, "-content", "%s-game-conv.cxi:0:0" % tid]
+    if os.path.isfile("%s-manual.cfa" % tid):
+        cmds.extend(["-content", "%s-manual.cfa:1:1" % tid])
+    if os.path.isfile("%s-dlpchild.cfa" % tid):
+        cmds.extend(["-content", "%s-dlpchild.cfa:2:2" % tid])
     runcommand(cmds)
     os.chdir("..")
+
+    # makerom doesn't accept custom SaveDataSize for some reason
+    # but make_cia makes a bad CIA that doesn't support the Manual or DLP child
+    # after enough using make_cia, it seems to just be having too many issues so it's not worth it
+
+    # Archive Header Size
+    with open(os.path.join(workdir, "%s-game-conv.cia" % tid), "r+b") as cia:
+        cia.seek(0x0)
+        cia_h_ahs = binascii.hexlify(cia.read(0x4)[::-1])
+        cia_h_ahs_align = roundup(cia_h_ahs)
+
+        # Certificate chain size
+        cia.seek(0x8)
+        cia_h_certs = binascii.hexlify(cia.read(0x4)[::-1])
+        cia_h_certs_align = roundup(cia_h_certs)
+
+        # Ticket size
+        cia.seek(0xC)
+        cia_h_tiks = binascii.hexlify(cia.read(0x4)[::-1])
+        cia_h_tiks_align = roundup(cia_h_tiks)
+
+        print_v("- writing savedatasize to CIA TMD")
+        tmdoffset = cia_h_ahs_align + cia_h_certs_align + cia_h_tiks_align
+        cia.seek(tmdoffset + 0x140 + 0x5a)
+        cia.write(savesize)
 
     # apparently if the file exists, it will throw an error on Windows
     silentremove(rom[2])
@@ -383,14 +409,13 @@ if totalroms == 0:
 else:
     if genncchinfo and len(ncchinfolist) != 0:
         print("- saving ncchinfo.bin")
-        ncchinfo = open("ncchinfo.bin", "wb")
-        ncchinfo.write("\xFF\xFF\xFF\xFF\x04\x00\x00\xF0")
-        # this is bad, I know
-        ncchinfo.write(binascii.unhexlify(format(len(ncchinfolist), 'x').rjust(8, '0'))[::-1])
-        ncchinfo.write("\x00\x00\x00\x00")
-        for i in ncchinfolist:
-            ncchinfo.write(i)
-        ncchinfo.close()
+        with open("ncchinfo.bin", "wb") as ncchinfo:
+            ncchinfo.write("\xFF\xFF\xFF\xFF\x04\x00\x00\xF0")
+            # this is bad, I know
+            ncchinfo.write(binascii.unhexlify(format(len(ncchinfolist), 'x').rjust(8, '0'))[::-1])
+            ncchinfo.write("\x00\x00\x00\x00")
+            for i in ncchinfolist:
+                ncchinfo.write(i)
         print("- use Decrypt9 on a 3DS system to generate the XORpads.")
         print("  place the file at the root or in a folder called \"Decrypt9\".")
         print("  view the Decrypt9 README and download releases at")

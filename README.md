@@ -3,7 +3,7 @@
 
 3dsconv supports using only an ExHeader XORpad, as well as decrypted ROMs. The ExHeader XORpad name format is `<TITLEID>.Main.exheader.xorpad`.
 
-[make_cia](https://github.com/ihaveamac/ctr_toolkit) in the PATH, or in the same folder on Windows systems.
+[makerom](https://github.com/profi200/Project_CTR) in the PATH, or in the same folder on Windows systems.
 
 This does not work with Python 3.
 
@@ -19,7 +19,7 @@ python2 3dsconv.py [options] game.3ds [game.3ds ...]
 * `--gen-ncchinfo` - generate `ncchinfo.bin` for ROMs that don't have a valid xorpad
 * `--gen-ncch-all` - use with `--gen-ncchinfo` to generate an `ncchinfo.bin` for all ROMs
 * `--noconvert` - don't convert ROMs, useful if you just want to generate `ncchinfo.bin`
-* `--force` - run even if make_cia isn't found
+* `--force` - run even if makerom isn't found
 * `--nocleanup` - don't remove temporary files once finished
 * `--verbose` - print more information
 
