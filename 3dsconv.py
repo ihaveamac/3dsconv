@@ -13,7 +13,6 @@ import errno
 import hashlib
 import itertools
 import glob
-import struct
 
 # default directories (relative to current dir unless you use absolute paths)
 # leave as "" for current working directory
