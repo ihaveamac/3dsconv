@@ -3,7 +3,7 @@
 
 3dsconv supports using only an ExHeader XORpad, as well as decrypted ROMs. The ExHeader XORpad name format is `<TITLEID>.Main.exheader.xorpad`.
 
-[makerom](https://github.com/profi200/Project_CTR) in the PATH, or in the same folder on Windows systems.
+[makerom](https://github.com/profi200/Project_CTR) is required in the PATH, or in the same folder on Windows systems.
 
 This does not work with Python 3.
 
