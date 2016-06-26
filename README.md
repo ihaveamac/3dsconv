@@ -7,7 +7,7 @@
 
 This does not work with Python 3.
 
-The recommended tool for dumping game cards is [Decrypt9WIP](https://github.com/d0k3/Decrypt9WIP). The recommended option is "Dump & Decrypt Cart (slim)", which dumps a decrypted and trimmed image.
+The recommended tool for dumping game cards is [Decrypt9WIP](https://github.com/d0k3/Decrypt9WIP). The recommended option is "Dump & Decrypt Cart (trim)", which dumps a decrypted and trimmed image.
 
 ## Usage
 ```bash
