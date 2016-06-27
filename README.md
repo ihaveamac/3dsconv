@@ -11,7 +11,7 @@ The recommended tool for dumping game cards is [Decrypt9WIP](https://github.com/
 
 ## Usage
 ### Basic use
-On Windows, decrypted ROMs can be dragged on top of `3dsconv.exe` (or `3dsconv.py` if Python is installed). Encrypted ROMs should be decrypted, or have the proper ExHeader XORpads in the same folder.
+On Windows, decrypted ROMs can be dragged on top of `3dsconv.exe`. Encrypted ROMs should be decrypted, or have the proper ExHeader XORpads in the same folder.
 
 ### Advanced options
 ```bash
