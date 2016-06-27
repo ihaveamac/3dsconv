@@ -1,5 +1,5 @@
 # 3dsconv
-`3dsconv.py` is a Python 2.7 script that converts Nintendo 3DS CTR Cart Images (CCI, ".3ds") files to the CTR Importable Archive format (CIA).
+`3dsconv.py` is a Python 2.7 script that converts Nintendo 3DS CTR Cart Image files (CCI, ".3ds") to the CTR Importable Archive format (CIA).
 
 3dsconv can detect if a CCI is decrypted or encrypted. Decrypted is preferred and does not require any extra files. Encrypted requires Extended Header (ExHeader) XORpads, with the filename `<TITLEID>.Main.exheader.xorpad`.
 
