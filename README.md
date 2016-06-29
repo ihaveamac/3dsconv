@@ -33,7 +33,7 @@ python2 3dsconv.py [options] game.3ds [game.3ds ...]
 If your ROM is encrypted, you must generate ExHeader XORpads with a 3DS system and the ability to use [Decrypt9](https://github.com/d0k3/Decrypt9WIP).
 
 1. Use `--gen-ncchinfo` with the ROMs you want to generate them for.  
-   By default, only ROMs without XORpads will be added into `ncchinfo.bin`. To add all given ROMs, add `--gen-ncch-all`.
+   By default, only ROMs without valid XORpads will be added into `ncchinfo.bin`. To add all given ROMs, add `--gen-ncch-all`.
 2. Place `ncchinfo.bin` at the root or `/Decrypt9` on your 3DS SD card.
 3. Run Decrypt9, and go to "XORpad Generator Options" and "NCCH Padgen".
 
