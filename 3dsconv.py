@@ -51,43 +51,42 @@ usage: 3dsconv.py [options] game.3ds [game.3ds ...]
 # includes certificate chain, ticket (blank titlekey and title id), and tmd signature + blank header (blank title id)
 #    + blank content info records
 # compressed using zlib then encoded with base64
-ciainfo = """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
-YtNfNM8GG2ywwQYbbLDB/xS/AbtxR+8="""
+ciainfo = """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"""
 
 if len(sys.argv) < 2:
     print(helptext % (version, ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory),
@@ -332,22 +331,22 @@ for rom in files:
         # CIA
         with open(rom[2], "wb") as cia:
             print_v("- writing CIA header")
-            chunkrecords  = "\x00" * 0xC  # 1st content: ID 0x00000000, Index 0x0000
+            chunkrecords = "\x00" * 0xC  # 1st content: ID 0x00000000, Index 0x0000
             chunkrecords += struct.pack(">I", gamecxi_size)
             chunkrecords += "\x00" * 0x20  # sha256 hash to be filled in later
             if manualcfa_offset != 0:
-                chunkrecords += binascii.unhexlify("000000010001000000000000")  # 2nd content: ID 0x00000001, Index 0x0001
+                chunkrecords += binascii.unhexlify("000000010001000000000000")  # 2nd content: ID 0x1, Index 0x1
                 chunkrecords += struct.pack(">I", manualcfa_size)
                 chunkrecords += "\x00" * 0x20  # sha256 hash to be filled in later
             if dlpchildcfa_offset != 0:
-                chunkrecords += binascii.unhexlify("000000020002000000000000")  # 3nd content: ID 0x00000002, Index 0x0002
+                chunkrecords += binascii.unhexlify("000000020002000000000000")  # 3nd content: ID 0x2, Index 0x2
                 chunkrecords += struct.pack(">I", dlpchildcfa_size)
                 chunkrecords += "\x00" * 0x20  # sha256 hash to be filled in later
 
             cia.write(binascii.unhexlify("2020000000000000000A000050030000") + tmdsize
                       + struct.pack("<I", gamecxi_size + manualcfa_size + dlpchildcfa_size)
                       + ("\x00" * 4) + contentindex + ("\x00" * 0x201F)
-                      + zlib.decompress(ciainfo.decode('base64'))
+                      + zlib.decompress(ciainfo.decode('base64')) + ("\x00" * 2412)
                       + chunkrecords + tmdpadding)
 
             chunkrecords = list(chunkrecords)  # to update hashes in it, then calculate the hash over the entire thing
@@ -411,7 +410,6 @@ for rom in files:
                 cia.seek(0x3904)
                 cia.write(manualcfa_hash.digest())
                 chunkrecords[0x40:0x60] = list(manualcfa_hash.digest())
-
 
             # Download Play child container CFA
             if dlpchildcfa_offset != 0:
