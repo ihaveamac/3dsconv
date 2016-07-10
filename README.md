@@ -3,8 +3,6 @@
 
 3dsconv can detect if a CCI is decrypted or encrypted. Decrypted is preferred and does not require any extra files. Encrypted requires Extended Header (ExHeader) XORpads, with the filename `<TITLEID>.Main.exheader.xorpad`.
 
-[makerom](https://github.com/profi200/Project_CTR) is required in the PATH, or in the same folder on Windows systems.
-
 This does not work with Python 3.
 
 The recommended tool for dumping game cards is [Decrypt9WIP](https://github.com/d0k3/Decrypt9WIP). The recommended option is "Dump & Decrypt Cart (trim)", which dumps a decrypted and trimmed image which can be quickly converted.
@@ -25,7 +23,6 @@ python2 3dsconv.py [options] game.3ds [game.3ds ...]
 * `--gen-ncchinfo` - generate `ncchinfo.bin` for ROMs that don't have a valid xorpad
 * `--gen-ncch-all` - use with `--gen-ncchinfo` to generate an `ncchinfo.bin` for all ROMs
 * `--noconvert` - don't convert ROMs, useful if you just want to generate `ncchinfo.bin`
-* `--force` - run even if makerom isn't found
 * `--nocleanup` - don't remove temporary files once finished
 * `--verbose` - print more information
 
