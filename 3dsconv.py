@@ -5,7 +5,6 @@
 # https://github.com/ihaveamac/3dsconv
 
 import binascii
-import errno
 import glob
 import hashlib
 import itertools
