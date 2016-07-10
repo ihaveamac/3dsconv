@@ -24,7 +24,7 @@ output_directory = ""
 workdir = "work"  # temporary folder to store files in
 
 #################
-version = "3.0"
+version = "3.01"
 
 helptext = """3dsconv.py ~ version %s
 "convert" a Nintendo 3DS ROM to a CIA (CTR Importable Archive)
@@ -39,7 +39,6 @@ usage: 3dsconv.py [options] game.3ds [game.3ds ...]
   --gen-ncchinfo   - generate ncchinfo.bin for ROMs that don't have a valid xorpad
   --gen-ncch-all   - use with --gen-ncchinfo to generate an ncchinfo.bin for all ROMs
   --noconvert      - don't convert ROMs, useful if you just want to generate ncchinfo.bin
-  --nocleanup      - don't remove temporary files once finished
   --verbose        - print more information
 
 - encrypted roms require an ExHeader XORpad with the name format:
@@ -97,7 +96,6 @@ if len(sys.argv) < 2:
 mu = 0x200  # media unit
 readsize = 8 * 1024 * 1024  # used from padxorer
 
-cleanup = "--nocleanup" not in sys.argv
 verbose = "--verbose" in sys.argv
 overwrite = "--overwrite" in sys.argv
 genncchinfo = "--gen-ncchinfo" in sys.argv
@@ -108,22 +106,6 @@ noconvert = "--noconvert" in sys.argv
 def print_v(msg):
     if verbose:
         print(msg)
-
-
-# used from http://stackoverflow.com/questions/10840533/most-pythonic-way-to-delete-a-file-which-may-not-exist
-def silentremove(filename):
-    try:
-        os.remove(filename)
-    except OSError as e:  # this would be "except OSError, e:" before Python 2.6
-        if e.errno != errno.ENOENT:  # errno.ENOENT = no such file or directory
-            raise  # re-raise exception if a different error occured
-
-
-def docleanup(tid_dc):
-    silentremove("work/%s-game-orig.cxi" % tid_dc)
-    silentremove("work/%s-game-conv.cxi" % tid_dc)
-    silentremove("work/%s-manual.cfa" % tid_dc)
-    silentremove("work/%s-dlpchild.cfa" % tid_dc)
 
 
 # based on http://stackoverflow.com/questions/1766535/bit-hack-round-off-to-multiple-of-8/1766566#1766566
@@ -208,7 +190,6 @@ for rom in files:
         if ncsdmagic != "NCSD":
             print("! %s is probably not a Nintendo 3DS ROM." % rom[0])
             print_v("  NCSD magic not found (offset 0x100)")
-            romf.close()
             continue
         romf.seek(0x108)
         tid_bin = romf.read(8)[::-1]
@@ -250,9 +231,6 @@ for rom in files:
         if noconvert:
             print("- not converting %s (%s) because --noconvert was used" %
                   (rom[1], "decrypted" if decrypted else "encrypted"))
-            if cleanup:
-                docleanup(tid)
-            romf.close()
             if genncchinfo:
                 ncchinfoadd(rom[0])
             continue
@@ -263,10 +241,7 @@ for rom in files:
                     print("  use --gen-ncchinfo with this ROM.")
                 else:
                     ncchinfoadd(rom[0])
-                romf.close()
                 continue
-
-        docleanup(tid)
 
         # Game Executable first-half ExHeader
         print_v("- verifying ExHeader")
@@ -294,9 +269,6 @@ for rom in files:
                 else:
                     ncchinfoadd(rom[0])
             print_v("  ExHeader SHA-256 hash check failed.")
-            romf.close()
-            if cleanup:
-                docleanup(tid)
             continue
 
         print_v("- patching ExHeader")
@@ -448,9 +420,6 @@ for rom in files:
             print_v("- Content info records SHA-256 hash:")
             print_v("  " + inforecords_hash.hexdigest())
             cia.write(inforecords_hash.digest())
-
-    if cleanup:
-        docleanup(tid)
 
     processedroms += 1
 
