@@ -24,7 +24,7 @@ output_directory = ""
 workdir = "work"  # temporary folder to store files in
 
 #################
-version = "2.2"
+version = "3.0"
 
 helptext = """3dsconv.py ~ version %s
 "convert" a Nintendo 3DS ROM to a CIA (CTR Importable Archive)
@@ -51,47 +51,43 @@ usage: 3dsconv.py [options] game.3ds [game.3ds ...]
 # includes certificate chain, ticket (blank titlekey and title id), and tmd signature + blank header (blank title id)
 #    + blank content info records
 # compressed using zlib then encoded with base64
-ciainfo = """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"""
+ciainfo = """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
+YtNfNM8GG2ywwQYbbLDB/xS/AbtxR+8="""
 
 if len(sys.argv) < 2:
     print(helptext % (version, ("current directory" if xorpad_directory == "" else "'%s'" % xorpad_directory),
@@ -355,6 +351,9 @@ for rom in files:
                       + chunkrecords + tmdpadding)
 
             chunkrecords = list(chunkrecords)  # to update hashes in it, then calculate the hash over the entire thing
+
+            cia.seek(0x2F9F)
+            cia.write(contentcount)
 
             cia.seek(0x2C1C)
             cia.write(tid_bin)
