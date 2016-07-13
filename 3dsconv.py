@@ -276,7 +276,7 @@ for rom in files:
         # there really has to be a better way to do this...
         # savesize = str(int(binascii.hexlify(exh[0x1C0:0x1C8][::-1]), 16) / 1024)
         exh = "".join(exh_list)
-        savesize = exh[0x1C0:0x1C8]
+        savesize = exh[0x1C0:0x1C4]
         new_exh_hash = hashlib.sha256("".join(exh)).digest()
 
         if not decrypted:
