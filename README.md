@@ -5,7 +5,7 @@
 
 This does not work with Python 3.
 
-The recommended tool for dumping game cards is [Decrypt9WIP](https://github.com/d0k3/Decrypt9WIP). The recommended option is "Dump & Decrypt Cart (trim)", which dumps a decrypted and trimmed image which can be quickly converted.
+[Decrypt9WIP](https://github.com/d0k3/Decrypt9WIP) can dump game cards to CIA directly now, rendering this tool partially obsolete. It can still be used for existing game dumps, however.
 
 ## Usage
 ### Basic use

@@ -4,6 +4,7 @@
 # license: MIT License
 # https://github.com/ihaveamac/3dsconv
 
+from __future__ import division
 import binascii
 import glob
 import hashlib
@@ -21,7 +22,7 @@ xorpad_directory = ""
 output_directory = ""
 
 #################
-version = "3.01"
+version = "3.1"
 
 helptext = """3dsconv.py ~ version %s
 "convert" a Nintendo 3DS ROM to a CIA (CTR Importable Archive)
@@ -136,6 +137,13 @@ def bytes2int(string):
     for ch in string:
         i_s = 256 * i_s + ord(ch)
     return i_s
+
+
+def showprogress(val, max):
+    # crappy workaround I bet, but print() didn't do what I wanted
+    minval = min(val, max)
+    sys.stdout.write("\r  %5.1f%% %10i / %i  " % ((minval / max) * 100, minval, max))
+    sys.stdout.flush()
 
 totalroms = 0
 processedroms = 0
@@ -333,7 +341,7 @@ for rom in files:
             cia.write(ncch_header + exh)
 
             # Game Executable CXI second-half ExHeader + contents
-            print_v("- writing Game Executable CXI")
+            print("- writing Game Executable CXI")
             print_v("  offset: %s" % hex(gamecxi_offset))
             print_v("  size:   %s" % hex(gamecxi_size))
             romf.seek(gamecxi_offset + 0x200 + 0x400)
@@ -345,10 +353,13 @@ for rom in files:
                 gamecxi_hash.update(tmpread)
                 cia.write(tmpread)
                 left -= readsize
+                showprogress(gamecxi_size - left, gamecxi_size)
                 if left <= 0:
+                    print("")
                     break
             print_v("- Game Executable CXI SHA-256 hash:")
-            print_v("  " + gamecxi_hash.hexdigest())
+            gamecxi_hashdigest = gamecxi_hash.hexdigest().upper()
+            print_v("  %s\n  %s" % (gamecxi_hashdigest[0:0x20], gamecxi_hashdigest[0x20:0x40]))
             cia.seek(0x38D4)
             cia.write(gamecxi_hash.digest())
             chunkrecords[0x10:0x30] = list(gamecxi_hash.digest())
@@ -356,7 +367,7 @@ for rom in files:
             # Manual CFA
             if manualcfa_offset != 0:
                 cia.seek(0, 2)
-                print_v("- writing Manual CFA")
+                print("- writing Manual CFA")
                 manualcfa_hash = hashlib.sha256()
                 print_v("  offset: %s" % hex(manualcfa_offset))
                 print_v("  size:   %s" % hex(manualcfa_size))
@@ -368,10 +379,13 @@ for rom in files:
                     manualcfa_hash.update(tmpread)
                     cia.write(tmpread)
                     left -= readsize
+                    showprogress(manualcfa_size - left, manualcfa_size)
                     if left <= 0:
+                        print("")
                         break
                 print_v("- Manual CFA SHA-256 hash:")
-                print_v("  " + manualcfa_hash.hexdigest())
+                manualcfa_hashdigest = manualcfa_hash.hexdigest().upper()
+                print_v("  %s\n  %s" % (manualcfa_hashdigest[0:0x20], manualcfa_hashdigest[0x20:0x40]))
                 cia.seek(0x3904)
                 cia.write(manualcfa_hash.digest())
                 chunkrecords[0x40:0x60] = list(manualcfa_hash.digest())
@@ -379,7 +393,7 @@ for rom in files:
             # Download Play child container CFA
             if dlpchildcfa_offset != 0:
                 cia.seek(0, 2)
-                print_v("- writing Download Play child container CFA")
+                print("- writing Download Play child container CFA")
                 dlpchildcfa_hash = hashlib.sha256()
                 print_v("  offset: %s" % hex(dlpchildcfa_offset))
                 print_v("  size:   %s" % hex(dlpchildcfa_size))
@@ -391,10 +405,13 @@ for rom in files:
                     dlpchildcfa_hash.update(tmpread)
                     cia.write(tmpread)
                     left -= readsize
+                    showprogress(dlpchildcfa_size - left, dlpchildcfa_size)
                     if left <= 0:
+                        print("")
                         break
                 print_v("- Download Play child container CFA SHA-256 hash:")
-                print_v("  " + dlpchildcfa_hash.hexdigest())
+                dlpchildcfa_hashdigest = dlpchildcfa_hash.hexdigest().upper()
+                print_v("  %s\n  %s" % (dlpchildcfa_hashdigest[0:0x20], dlpchildcfa_hashdigest[0x20:0x40]))
                 cia.seek(0x3934)
                 cia.write(dlpchildcfa_hash.digest())
                 chunkrecords[0x70:0x90] = list(dlpchildcfa_hash.digest())
@@ -402,7 +419,8 @@ for rom in files:
             print_v("- updating hashes")
             chunkrecords_hash = hashlib.sha256("".join(chunkrecords))
             print_v("- Content chunk records SHA-256 hash:")
-            print_v("  " + chunkrecords_hash.hexdigest())
+            chunkrecords_hashdigest = chunkrecords_hash.hexdigest().upper()
+            print_v("  %s\n  %s" % (chunkrecords_hashdigest[0:0x20], chunkrecords_hashdigest[0x20:0x40]))
 
             cia.seek(0x2FC7)
             cia.write(contentcount + chunkrecords_hash.digest())
@@ -411,7 +429,8 @@ for rom in files:
             inforecords_hash = hashlib.sha256("\x00\x00\x00" + contentcount + chunkrecords_hash.digest()
                                               + ("\x00"*0x8DC))
             print_v("- Content info records SHA-256 hash:")
-            print_v("  " + inforecords_hash.hexdigest())
+            inforecords_hashdigest = inforecords_hash.hexdigest().upper()
+            print_v("  %s\n  %s" % (inforecords_hashdigest[0:0x20], inforecords_hashdigest[0x20:0x40]))
             cia.write(inforecords_hash.digest())
 
     processedroms += 1
@@ -429,9 +448,9 @@ else:
             ncchinfo.write("\x00\x00\x00\x00")
             for i in ncchinfolist:
                 ncchinfo.write(i)
-        print("- use Decrypt9 on a 3DS system to generate the XORpads.")
-        print("  place the file at the root or in a folder called \"Decrypt9\".")
-        print("  view the Decrypt9 README and download releases at")
+        print("- use Decrypt9WIP on a 3DS system to generate the XORpads.")
+        print("  place the file at the root or in a folder called \"files9\".")
+        print("  view the Decrypt9WIP README and download releases at")
         print("  https://github.com/d0k3/Decrypt9WIP")
     print("* done converting!")
     print("  %i out of %i roms processed" % (processedroms, totalroms))
