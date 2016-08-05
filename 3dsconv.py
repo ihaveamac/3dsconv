@@ -142,7 +142,7 @@ def bytes2int(string):
 def showprogress(val, max):
     # crappy workaround I bet, but print() didn't do what I wanted
     minval = min(val, max)
-    sys.stdout.write("\r  %5.1f%% %10i / %i  " % ((minval / max) * 100, minval, max))
+    sys.stdout.write("\r  %5.1f%% %10i / %i" % ((minval / max) * 100, minval, max))
     sys.stdout.flush()
 
 totalroms = 0
