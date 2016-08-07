@@ -22,7 +22,8 @@ xorpad_directory = ""
 output_directory = ""
 
 #################
-version = "3.1"
+version = "3.11"
+# "for workgroups" joke goes here, I imagine. sorry I'm bored
 
 helptext = """3dsconv.py ~ version %s
 "convert" a Nintendo 3DS ROM to a CIA (CTR Importable Archive)
@@ -37,6 +38,7 @@ usage: 3dsconv.py [options] game.3ds [game.3ds ...]
   --gen-ncchinfo   - generate ncchinfo.bin for ROMs that don't have a valid xorpad
   --gen-ncch-all   - use with --gen-ncchinfo to generate an ncchinfo.bin for all ROMs
   --noconvert      - don't convert ROMs, useful if you just want to generate ncchinfo.bin
+  --ignorbadhash   - ignore bad SHA-256 (bad xorpad/corrupt rom) and convert anyway
   --verbose        - print more information
 
 - encrypted roms require an ExHeader XORpad with the name format:
@@ -100,6 +102,7 @@ overwrite = "--overwrite" in sys.argv
 genncchinfo = "--gen-ncchinfo" in sys.argv
 genncchall = "--gen-ncch-all" in sys.argv
 noconvert = "--noconvert" in sys.argv
+ignorebadhash = "--ignorebadhash" in sys.argv
 
 
 def print_v(msg):
@@ -270,7 +273,10 @@ for rom in files:
                 else:
                     ncchinfoadd(rom[0])
             print_v("  ExHeader SHA-256 hash check failed.")
-            continue
+            if ignorebadhash:
+                print("  converting anyway because --ignorebadhash was used")
+            else:
+                continue
 
         print_v("- patching ExHeader")
         exh_list = list(exh)
