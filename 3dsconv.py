@@ -125,7 +125,7 @@ def ncchinfoadd(rom_ncchinfo):
             romf_ncchinfo.seek(0x108)
             tid_ncchinfo = romf_ncchinfo.read(8)
             romf_ncchinfo.seek(0x120)
-            romf_ncchinfo.seek(bytes2int(romf_ncchinfo.read(0x4)[::-1]) * mu)  # first partition offset
+            romf_ncchinfo.seek(struct.unpack("<I", romf_ncchinfo.read(4))[0] * mu)  # first partition offset
             keyy_ncchinfo = romf_ncchinfo.read(16)
             ncchinfolist.append(tid_ncchinfo[::-1] + "\x01\x00\x00\x00\x00\x00\x00\x00" + keyy_ncchinfo +
                                 "\x01\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" + "\x00\x00\x00\x00" +
@@ -134,18 +134,10 @@ def ncchinfoadd(rom_ncchinfo):
         ncchinfo_used_roms.append(rom_ncchinfo)
 
 
-# used from http://www.gossamer-threads.com/lists/python/python/163938
-def bytes2int(string):
-    i_s = 0
-    for ch in string:
-        i_s = 256 * i_s + ord(ch)
-    return i_s
-
-
-def showprogress(val, max):
+def showprogress(val, maxval):
     # crappy workaround I bet, but print() didn't do what I wanted
-    minval = min(val, max)
-    sys.stdout.write("\r  %5.1f%% %10i / %i" % ((minval / max) * 100, minval, max))
+    minval = min(val, maxval)
+    sys.stdout.write("\r  %5.1f%% %10i / %i" % ((minval / maxval) * 100, minval, maxval))
     sys.stdout.flush()
 
 totalroms = 0
@@ -202,16 +194,16 @@ for rom in files:
 
         # find Game Executable CXI
         romf.seek(0x120)
-        gamecxi_offset = bytes2int(romf.read(0x4)[::-1]) * mu
-        gamecxi_size = bytes2int(romf.read(0x4)[::-1]) * mu
+        gamecxi_offset = struct.unpack("<I", romf.read(4))[0] * mu
+        gamecxi_size = struct.unpack("<I", romf.read(4))[0] * mu
         # find Manual CFA
         romf.seek(0x128)
-        manualcfa_offset = bytes2int(romf.read(0x4)[::-1]) * mu
-        manualcfa_size = bytes2int(romf.read(0x4)[::-1]) * mu
+        manualcfa_offset = struct.unpack("<I", romf.read(4))[0] * mu
+        manualcfa_size = struct.unpack("<I", romf.read(4))[0] * mu
         # find Download Play child container CFA
         romf.seek(0x130)
-        dlpchildcfa_offset = bytes2int(romf.read(0x4)[::-1]) * mu
-        dlpchildcfa_size = bytes2int(romf.read(0x4)[::-1]) * mu
+        dlpchildcfa_offset = struct.unpack("<I", romf.read(4))[0] * mu
+        dlpchildcfa_size = struct.unpack("<I", romf.read(4))[0] * mu
 
         # probably should calculate these but I'm lazy this is easier
         tmdpadding = "\x00" * 12  # padding to add at the end of the tmd
