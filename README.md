@@ -9,7 +9,7 @@ This does not work with Python 3.
 
 ## Usage
 ### Basic use
-On Windows, decrypted ROMs can be dragged on top of `3dsconv.exe`. Encrypted ROMs should be decrypted, or have the proper ExHeader XORpads in the same folder.
+On Windows, decrypted CCIs can be dragged on top of `3dsconv.exe`. Encrypted CCIs should be decrypted, or have the proper ExHeader XORpads in the same folder.
 
 ### Advanced options
 ```bash
@@ -20,18 +20,18 @@ python2 3dsconv.py [options] game.3ds [game.3ds ...]
 * `--output=<dir>` - save converted CIA files in the specified directory  
   default is current directory or what is set as `output-directory`
 * `--overwrite` - overwrite any existing converted CIA, if it exists
-* `--gen-ncchinfo` - generate `ncchinfo.bin` for ROMs without a valid xorpad
-* `--gen-ncch-all` - generate `ncchinfo.bin` for all ROMs
+* `--gen-ncchinfo` - generate `ncchinfo.bin` for CCIs without a valid xorpad
+* `--gen-ncch-all` - generate `ncchinfo.bin` for all CCIs
   used with --gen-ncchinfo
-* `--noconvert` - don't convert ROMs, useful to generate just `ncchinfo.bin`
+* `--noconvert` - don't convert CCIs, useful to generate just `ncchinfo.bin`
 * `--ignorebadhash` - ignore bad xorpad/corrupt rom and convert anyway
 * `--verbose` - print more information
 
 ## Generating XORpads
-If your ROM is encrypted, you must generate ExHeader XORpads with a 3DS system and the ability to use [Decrypt9](https://github.com/d0k3/Decrypt9WIP).
+If your CCI is encrypted, you must generate ExHeader XORpads with a 3DS system and the ability to use [Decrypt9](https://github.com/d0k3/Decrypt9WIP).
 
-1. Use `--gen-ncchinfo` with the ROMs you want to generate them for.  
-   By default, only ROMs without valid XORpads will be added into `ncchinfo.bin`. To add all given ROMs, add `--gen-ncch-all`.
+1. Use `--gen-ncchinfo` with the CCIs you want to generate them for.  
+   By default, only CCIs without valid XORpads will be added into `ncchinfo.bin`. To add all given CCIs, add `--gen-ncch-all`.
 2. Place `ncchinfo.bin` at the root or `/Decrypt9` on your 3DS SD card.
 3. Run Decrypt9, and go to "XORpad Generator Options" and "NCCH Padgen".
 
