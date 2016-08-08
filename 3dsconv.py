@@ -27,7 +27,7 @@ version = "3.11"
 
 # -- 80-characters wide ------------------------------------------------------ #
 helptext = """3dsconv.py ~ version {}
-"convert" a Nintendo 3DS ROM to a CIA (CTR Importable Archive)
+convert a Nintendo 3DS CCI (.3ds/.cci) to a CIA
 https://github.com/ihaveamac/3dsconv
 
 usage: 3dsconv.py [options] game.3ds [game.3ds ...]
@@ -36,10 +36,10 @@ usage: 3dsconv.py [options] game.3ds [game.3ds ...]
   --output=<dir>   - save converted CIA files in the specified directory
                      default is {}
   --overwrite      - overwrite any existing converted CIA, if it exists
-  --gen-ncchinfo   - generate ncchinfo.bin for ROMs without a valid xorpad
-  --gen-ncch-all   - generate ncchinfo.bin for all ROMs
+  --gen-ncchinfo   - generate ncchinfo.bin for CCIs without a valid xorpad
+  --gen-ncch-all   - generate ncchinfo.bin for all CCIs
                      used with --gen-ncchinfo
-  --noconvert      - don't convert ROMs, useful to generate just ncchinfo.bin
+  --noconvert      - don't convert CCIs, useful to generate just ncchinfo.bin
   --ignorebadhash  - ignore bad xorpad/corrupt rom and convert anyway
   --verbose        - print more information
 
@@ -188,7 +188,7 @@ for rom in files:
         romf.seek(0x100)
         ncsdmagic = romf.read(4)
         if ncsdmagic != "NCSD":
-            print("! {} is probably not a Nintendo 3DS ROM.".format(rom[0]))
+            print("! {} is probably not a Nintendo 3DS CCI.".format(rom[0]))
             print_v("  NCSD magic not found (offset 0x100)")
             continue
         romf.seek(0x108)
@@ -239,7 +239,7 @@ for rom in files:
             if not os.path.isfile(xorpad):
                 print("! {} couldn't be found.".format(xorpad))
                 if not genncchinfo:
-                    print("  use --gen-ncchinfo with this ROM.")
+                    print("  use --gen-ncchinfo with this CCI.")
                 else:
                     ncchinfoadd(rom[0])
                 continue
@@ -262,7 +262,7 @@ for rom in files:
         ncch_exh_hash = romf.read(0x20)
         if exh_hash != ncch_exh_hash:
             if decrypted:
-                print("! this ROM might be corrupt.")
+                print("! this CCI might be corrupt.")
             else:
                 print("! {} is not the correct XORpad, or is corrupt.".format(xorpad))
                 if not genncchinfo:
@@ -429,8 +429,7 @@ for rom in files:
             cia.write(contentcount + chunkrecords_hash.digest())
 
             cia.seek(0x2FA4)
-            inforecords_hash = hashlib.sha256("\0\0\0" + contentcount + chunkrecords_hash.digest()
-                                              + ("\0"*0x8DC))
+            inforecords_hash = hashlib.sha256("\0\0\0" + contentcount + chunkrecords_hash.digest() + ("\0"*0x8DC))
             print_v("- Content info records SHA-256 hash:")
             inforecords_hashdigest = inforecords_hash.hexdigest().upper()
             print_v("  {}\n  {}".format(inforecords_hashdigest[0:0x20], inforecords_hashdigest[0x20:0x40]))
