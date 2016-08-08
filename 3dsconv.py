@@ -25,6 +25,7 @@ output_directory = ""
 version = "3.11"
 # "for workgroups" joke goes here, I imagine. sorry I'm bored
 
+# -- 80-characters wide ------------------------------------------------------ #
 helptext = """3dsconv.py ~ version {}
 "convert" a Nintendo 3DS ROM to a CIA (CTR Importable Archive)
 https://github.com/ihaveamac/3dsconv
@@ -35,10 +36,11 @@ usage: 3dsconv.py [options] game.3ds [game.3ds ...]
   --output=<dir>   - save converted CIA files in the specified directory
                      default is {}
   --overwrite      - overwrite any existing converted CIA, if it exists
-  --gen-ncchinfo   - generate ncchinfo.bin for ROMs that don't have a valid xorpad
-  --gen-ncch-all   - use with --gen-ncchinfo to generate an ncchinfo.bin for all ROMs
-  --noconvert      - don't convert ROMs, useful if you just want to generate ncchinfo.bin
-  --ignorebadhash  - ignore bad SHA-256 (bad xorpad/corrupt rom) and convert anyway
+  --gen-ncchinfo   - generate ncchinfo.bin for ROMs without a valid xorpad
+  --gen-ncch-all   - generate ncchinfo.bin for all ROMs
+                     used with --gen-ncchinfo
+  --noconvert      - don't convert ROMs, useful to generate just ncchinfo.bin
+  --ignorebadhash  - ignore bad xorpad/corrupt rom and convert anyway
   --verbose        - print more information
 
 - encrypted roms require an ExHeader XORpad with the name format:
@@ -93,8 +95,7 @@ kXu4POnGfYkxV4bmPKOxSJ3ousoMINwK3bcZ/7vcqCP/y7Ex69b5g//I7/2Wr85+7thobOzCv5O/
 ZJM/ASAA+9rTvwbs2/h3EALr1cX9K7asT679CX9H+f+R/7+/kc0c3x/f3/f+S/6N3vq/AdS4R+w="""
 
 if len(sys.argv) < 2:
-    print(helptext)
-    sys.exit(1)
+    sys.exit(helptext)
 
 mu = 0x200  # media unit
 readsize = 8 * 1024 * 1024  # used from padxorer
@@ -177,8 +178,7 @@ if output_directory != "":
             raise
 
 if not files:
-    print("! no inputted files exist.")
-    sys.exit(1)
+    sys.exit("! no inputted files exist.")
 
 for rom in files:
     if genncchinfo and genncchall:
@@ -439,8 +439,7 @@ for rom in files:
     processedroms += 1
 
 if totalroms == 0:
-    print(helptext)
-    sys.exit(1)
+    sys.exit(helptext)
 else:
     if genncchinfo and len(ncchinfolist) != 0:
         print("- saving ncchinfo.bin")
@@ -448,7 +447,7 @@ else:
             ncchinfo.write("\xFF\xFF\xFF\xFF\x04\0\0\xF0")
             # this is bad, I know
             ncchinfo.write(binascii.unhexlify(format(len(ncchinfolist), 'x').rjust(8, '0'))[::-1])
-            ncchinfo.write("\0\0\0\0")
+            ncchinfo.write("\0" * 4)
             for i in ncchinfolist:
                 ncchinfo.write(i)
         print("- use Decrypt9WIP on a 3DS system to generate the XORpads.")
