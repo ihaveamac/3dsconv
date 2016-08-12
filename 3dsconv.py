@@ -15,6 +15,14 @@ import struct
 import sys
 import zlib
 
+pycrypto_found = False
+try:
+    from Crypto.Cipher import AES
+    from Crypto.Util import Counter
+    pycrypto_found = True
+except ImportError:
+    pass
+
 # default directories (relative to current dir unless you use absolute paths)
 # leave as "" for current working directory
 # using --xorpads= or --output= will override these
@@ -22,8 +30,7 @@ xorpad_directory = ""
 output_directory = ""
 
 #################
-version = "3.11"
-# "for workgroups" joke goes here, I imagine. sorry I'm bored
+version = "3.2"
 
 # -- 80-characters wide ------------------------------------------------------ #
 helptext = """3dsconv.py ~ version {}
@@ -99,6 +106,7 @@ if len(sys.argv) < 2:
 
 mu = 0x200  # media unit
 readsize = 8 * 1024 * 1024  # used from padxorer
+zerokey = "\0" * 16
 
 verbose = "--verbose" in sys.argv
 overwrite = "--overwrite" in sys.argv
@@ -112,6 +120,10 @@ def print_v(msg):
     if verbose:
         print(msg)
 
+if pycrypto_found:
+    print_v("- PyCrypto found, zerokey will be supported")
+else:
+    print_v("- PyCrypto not found, zerokey will not be supported")
 
 ncchinfolist = []
 ncchinfo_used_roms = []
@@ -209,25 +221,12 @@ for rom in files:
         dlpchildcfa_offset = struct.unpack("<I", romf.read(4))[0] * mu
         dlpchildcfa_size = struct.unpack("<I", romf.read(4))[0] * mu
 
-        # probably should calculate these but I'm lazy this is easier
-        tmdpadding = "\0" * 12  # padding to add at the end of the tmd
-        contentcount = "\x01"  # for convenience later since this has to be written a few times
-        tmdsize = "\x34\x0B\0\0\0\0\0\0"  # for convenience when writing the CIA header
-        contentindex = "\x80"  # some weird thing in the CIA header
-        if manualcfa_offset != 0:
-            tmdpadding = "\0" * 28
-            contentcount = "\x02"
-            tmdsize = "\x64\x0B\0\0\0\0\0\0"
-            contentindex = "\xC0"
-        if dlpchildcfa_offset != 0:
-            tmdpadding = "\0" * 44
-            contentcount = "\x03"
-            tmdsize = "\x94\x0B\0\0\0\0\0\0"
-            contentindex = "\xE0"
-
         romf.seek(gamecxi_offset + 0x18F)
         decrypted = int(binascii.hexlify(romf.read(1))) & 0x04
-        print("- processing: {} ({})".format(rom[1], "decrypted" if decrypted else "encrypted"))
+        zerokey_enc = int(binascii.hexlify(romf.read(1))) & 0x01
+        print("- processing: {} ({})".format(
+            rom[1], "decrypted" if decrypted else ("zerokey" if zerokey_enc else "encrypted"))
+        )
         if noconvert:
             print("- not converting {} ({}) because --noconvert was used".format(
                 rom[1], "decrypted" if decrypted else "encrypted"
@@ -235,7 +234,7 @@ for rom in files:
             if genncchinfo:
                 ncchinfoadd(rom[0])
             continue
-        if not decrypted:
+        if not decrypted and not zerokey_enc:
             if not os.path.isfile(xorpad):
                 print("! {} couldn't be found.".format(xorpad))
                 if not genncchinfo:
@@ -243,6 +242,9 @@ for rom in files:
                 else:
                     ncchinfoadd(rom[0])
                 continue
+        elif zerokey_enc and not pycrypto_found:
+            print("! PyCrypto is required to convert zerokey-encrypted roms.")
+            continue
 
         # Game Executable first-half ExHeader
         print_v("- verifying ExHeader")
@@ -251,12 +253,19 @@ for rom in files:
         xor = ""
         if not decrypted:
             print_v("- decrypting ExHeader")
-            with open(xorpad, "rb") as xorfile:
-                xor = xorfile.read(0x400)
-            xored = ""
-            for byte_f, byte_x in zip(exh, xor):
-                xored += chr(ord(byte_f) ^ ord(byte_x))
-            exh = xored
+            if zerokey_enc:
+                print_v("- using zerokey")
+                ctr = Counter.new(128, initial_value=long(tid + "0100000000000000", 16))
+                ctrmode = AES.new(zerokey, AES.MODE_CTR, counter=ctr)
+                exh = ctrmode.decrypt(exh)
+            else:
+                print_v("- using XORpad")
+                with open(xorpad, "rb") as xorfile:
+                    xor = xorfile.read(0x400)
+                xored = ""
+                for byte_f, byte_x in zip(exh, xor):
+                    xored += chr(ord(byte_f) ^ ord(byte_x))
+                exh = xored
         exh_hash = hashlib.sha256(exh).digest()
         romf.seek(0x4160)
         ncch_exh_hash = romf.read(0x20)
@@ -275,15 +284,30 @@ for rom in files:
             else:
                 continue
 
+        # probably should calculate these but I'm lazy this is easier
+        tmdpadding = "\0" * 12  # padding to add at the end of the tmd
+        contentcount = "\x01"  # for convenience later since this has to be written a few times
+        tmdsize = "\x34\x0B\0\0\0\0\0\0"  # for convenience when writing the CIA header
+        contentindex = "\x80"  # some weird thing in the CIA header
+        if manualcfa_offset != 0:
+            tmdpadding = "\0" * 28
+            contentcount = "\x02"
+            tmdsize = "\x64\x0B\0\0\0\0\0\0"
+            contentindex = "\xC0"
+        if dlpchildcfa_offset != 0:
+            tmdpadding = "\0" * 44
+            contentcount = "\x03"
+            tmdsize = "\x94\x0B\0\0\0\0\0\0"
+            contentindex = "\xE0"
+
         print_v("- patching ExHeader")
+        print_v("  offset 0xD of ExHeader:")
         exh_list = list(exh)
         x = ord(exh_list[0xD])
-        z = x | 2
-        print_v("  offset 0xD of ExHeader:")
         print_v("  original: {}".format(hex(x)))
-        print_v("  shifted:  {}".format(hex(z)))
-        z = chr(z)
-        exh_list[0xD:0xE] = z
+        x |= 2
+        print_v("  shifted:  {}".format(hex(x)))
+        exh_list[0xD:0xE] = chr(x)
         # there really has to be a better way to do this...
         # savesize = str(int(binascii.hexlify(exh[0x1C0:0x1C8][::-1]), 16) / 1024)
         exh = "".join(exh_list)
@@ -292,10 +316,18 @@ for rom in files:
 
         if not decrypted:
             print_v("- re-encrypting ExHeader")
-            xored = ""
-            for byte_f, byte_x in zip(exh_list, xor):
-                xored += chr(ord(byte_f) ^ ord(byte_x))
-            exh = xored
+            if zerokey_enc:
+                print_v("- using zerokey")
+                ctr = Counter.new(128, initial_value=long(tid + "0100000000000000", 16))
+                ctrmode = AES.new(zerokey, AES.MODE_CTR, counter=ctr)
+                exh = ctrmode.encrypt(exh)
+                pass
+            else:
+                print_v("- using XORpad")
+                xored = ""
+                for byte_f, byte_x in zip(exh_list, xor):
+                    xored += chr(ord(byte_f) ^ ord(byte_x))
+                exh = xored
 
         # Game Executable NCCH Header
         print_v("- reading NCCH header of Game Executable CXI")
@@ -319,11 +351,13 @@ for rom in files:
                 chunkrecords += struct.pack(">I", dlpchildcfa_size)
                 chunkrecords += "\0" * 0x20  # sha256 hash to be filled in later
 
-            cia.write(binascii.unhexlify("2020000000000000000A000050030000") + tmdsize
-                      + struct.pack("<I", gamecxi_size + manualcfa_size + dlpchildcfa_size)
-                      + ("\0" * 4) + contentindex + ("\0" * 0x201F)
-                      + zlib.decompress(ciainfo.decode('base64')) + ("\0" * 2412)
-                      + chunkrecords + tmdpadding)
+            cia.write(
+                binascii.unhexlify("2020000000000000000A000050030000") + tmdsize +
+                struct.pack("<I", gamecxi_size + manualcfa_size + dlpchildcfa_size) +
+                ("\0" * 4) + contentindex + ("\0" * 0x201F) +
+                zlib.decompress(ciainfo.decode('base64')) + ("\0" * 2412) +
+                chunkrecords + tmdpadding
+            )
 
             chunkrecords = list(chunkrecords)  # to update hashes in it, then calculate the hash over the entire thing
 

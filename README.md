@@ -49,5 +49,6 @@ Using [py2exe](http://www.py2exe.org/), you can pack the script into a Windows e
 ## License / Credits
 * `3dsconv.py` is under the MIT license.
 * `ncchinfo.bin` generation is based on [Decrypt9WIP's `ncchinfo_gen.py`](https://github.com/d0k3/Decrypt9WIP/blob/master/scripts/ncchinfo_gen.py).
+* Zerokey crypto code is based off [this ncchinfo padgen pastebin](http://pastebin.com/K3pVsnkq).
 
 For versions older than "2.0", see this [Gist](https://gist.github.com/ihaveamac/dfc01fa09483c275f72ad69cd7e8080f).
