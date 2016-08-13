@@ -1,7 +1,7 @@
 # 3dsconv
 `3dsconv.py` is a Python 2.7 script that converts Nintendo 3DS CTR Cart Image files (CCI, ".cci", ".3ds") to the CTR Importable Archive format (CIA).
 
-3dsconv can detect if a CCI is decrypted or encrypted. Decrypted is preferred and does not require any extra files. Encrypted requires Extended Header (ExHeader) XORpads, with the filename `<TITLEID>.Main.exheader.xorpad`.
+3dsconv can detect if a CCI is decrypted or encrypted, or zerokey-encrypted. Decrypted is preferred and does not require any extra files. Encrypted requires Extended Header (ExHeader) XORpads, with the filename `<TITLEID>.Main.exheader.xorpad`. Zerokey encryption works only if [PyCrypto](https://www.dlitz.net/software/pycrypto/) is installed (can be installed with pip).
 
 This does not work with Python 3.
 
