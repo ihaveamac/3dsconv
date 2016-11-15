@@ -146,7 +146,7 @@ def ncchinfoadd(rom_ncchinfo):
             romf_ncchinfo.seek(struct.unpack("<I", romf_ncchinfo.read(4))[0] * mu)  # first partition offset
             keyy_ncchinfo = romf_ncchinfo.read(16)
             ncchinfolist.append(
-                tid_ncchinfo[::-1] + "\x01" + ("\0" * 14) + keyy_ncchinfo + "\x01" + ("\0" * 15) +
+                tid_ncchinfo[::-1] + "\x01" + ("\0" * 7) + keyy_ncchinfo + "\x01" + ("\0" * 15) +
                 tid_ncchinfo + (
                     "/{}.Main.exheader.xorpad".format(binascii.hexlify(tid_ncchinfo[::-1]).upper())
                 ).ljust(112, "\0")
