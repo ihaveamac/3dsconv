@@ -225,8 +225,12 @@ for rom in files:
         dlpchildcfa_size = struct.unpack("<I", romf.read(4))[0] * mu
 
         romf.seek(gamecxi_offset + 0x18F)
-        decrypted = int(binascii.hexlify(romf.read(1))) & 0x04
-        zerokey_enc = int(binascii.hexlify(romf.read(1))) & 0x01
+
+        # Check NCCH flag 7 for FixedCryptoKey (0x1) and NoCrypto (0x4)
+        bitmask = int(binascii.hexlify(romf.read(1)))
+        decrypted = bitmask & 0x4
+        zerokey_enc = bitmask & 0x1
+
         print("- processing: {} ({})".format(
             rom[1], "decrypted" if decrypted else ("zerokey" if zerokey_enc else "encrypted")
         ))
