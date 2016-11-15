@@ -31,7 +31,7 @@ xorpad_directory = ""
 output_directory = ""
 
 #################
-version = "3.2"
+version = "3.21"
 
 # -- 80-characters wide ------------------------------------------------------ #
 helptext = """3dsconv.py ~ version {}
