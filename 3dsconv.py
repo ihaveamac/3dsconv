@@ -172,6 +172,24 @@ def showprogress(val, maxval):
     sys.stdout.write("\r  {:>5.1f}% {:>10} / {}".format((minval / maxval) * 100, minval, maxval))
     sys.stdout.flush()
 
+def find_xorpad_file(search_path, tid, crc32):
+  xorpad = False
+  xorpad_default = '%s.Main.exheader.xorpad' % tid.upper()
+  xorpad_with_crc32 = '%s.%s.Main.exheader.xorpad' % (tid.upper(), crc32)
+
+  for root, dirnames, filenames in os.walk(search_path):
+    for filename in filenames:
+      if filename.lower() == xorpad_with_crc32.lower():
+        # exact match with crc32.
+        return os.path.join(root, filename)
+
+      if filename.lower() == xorpad_default.lower():
+        # title match, but could potentially still see an exact crc32 match.
+        xorpad = os.path.join(root, filename)
+
+  return xorpad
+
+
 totalroms = 0
 processedroms = 0
 
@@ -211,6 +229,10 @@ for rom in files:
     if genncchinfo and genncchall:
         ncchinfoadd(rom[0])
     totalroms += 1
+
+    print("- opening %s" % rom[0])
+
+    print("- calculating crc32...")
     crc32 = get_file_crc32(rom[0])
 
     with open(rom[0], "rb") as romf:
@@ -224,21 +246,7 @@ for rom in files:
         tid_bin = romf.read(8)[::-1]
         tid = binascii.hexlify(tid_bin)
 
-        # find xorpad file
-        xorpad = False
-        xorpad_default = '%s.Main.exheader.xorpad' % tid.upper()
-        xorpad_with_crc32 = '%s.%s.Main.exheader.xorpad' % (tid.upper(), crc32)
-
-        for root, dirnames, filenames in os.walk(xorpad_directory):
-          for filename in filenames:
-            if filename.lower() == xorpad_with_crc32.lower():
-              # exact match with crc32.
-              xorpad = os.path.join(root, filename)
-              break
-            if filename.lower() == xorpad_default.lower():
-              # title match, but could potentially still see an exact crc32 match.
-              xorpad = os.path.join(root, filename)
-
+        xorpad = find_xorpad_file(xorpad_directory, tid, crc32)
         if xorpad:
           print("- found xorpad file %s" % os.path.basename(xorpad))
 
