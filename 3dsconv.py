@@ -15,6 +15,18 @@ import struct
 import sys
 import zlib
 
+
+def get_file_crc32(path):
+  chunksize = 1024 * 1024
+  buf = open(path, 'rb')
+  chunk = buf.read(chunksize)
+  crc = 0
+  while chunk:
+    crc = zlib.crc32(chunk, crc)
+    chunk = buf.read(chunksize)
+  crc = crc & 0xffffffff
+  return "%08x" % crc
+
 # check for PyCrypto, which is used for zerokey support
 pycrypto_found = False
 try:
@@ -199,6 +211,8 @@ for rom in files:
     if genncchinfo and genncchall:
         ncchinfoadd(rom[0])
     totalroms += 1
+    crc32 = get_file_crc32(rom[0])
+
     with open(rom[0], "rb") as romf:
         romf.seek(0x100)
         ncsdmagic = romf.read(4)
@@ -209,7 +223,25 @@ for rom in files:
         romf.seek(0x108)
         tid_bin = romf.read(8)[::-1]
         tid = binascii.hexlify(tid_bin)
-        xorpad = os.path.join(xorpad_directory, "{}.Main.exheader.xorpad".format(tid.upper()))
+
+        # find xorpad file
+        xorpad = False
+        xorpad_default = '%s.Main.exheader.xorpad' % tid.upper()
+        xorpad_with_crc32 = '%s.%s.Main.exheader.xorpad' % (tid.upper(), crc32)
+
+        for root, dirnames, filenames in os.walk(xorpad_directory):
+          for filename in filenames:
+            if filename.lower() == xorpad_with_crc32.lower():
+              # exact match with crc32.
+              xorpad = os.path.join(root, filename)
+              break
+            if filename.lower() == xorpad_default.lower():
+              # title match, but could potentially still see an exact crc32 match.
+              xorpad = os.path.join(root, filename)
+
+        if xorpad:
+          print("- found xorpad file %s" % os.path.basename(xorpad))
+
 
         # find Game Executable CXI
         romf.seek(0x120)
@@ -242,8 +274,8 @@ for rom in files:
                 ncchinfoadd(rom[0])
             continue
         if not decrypted and not zerokey_enc:
-            if not os.path.isfile(xorpad):
-                print("! {} couldn't be found.".format(xorpad))
+            if not xorpad:
+                print("! no xorpad file found. looking for %s or %s" % (xorpad_default, xorpad_with_crc32))
                 if not genncchinfo:
                     print("  use --gen-ncchinfo with this CCI.")
                 else:
