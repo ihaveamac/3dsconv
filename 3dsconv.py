@@ -31,7 +31,7 @@ xorpad_directory = ""
 output_directory = ""
 
 #################
-version = "3.21"
+version = "3.22"
 
 # -- 80-characters wide ------------------------------------------------------ #
 helptext = """3dsconv.py ~ version {}
@@ -146,7 +146,8 @@ def ncchinfoadd(rom_ncchinfo):
             romf_ncchinfo.seek(struct.unpack("<I", romf_ncchinfo.read(4))[0] * mu)  # first partition offset
             keyy_ncchinfo = romf_ncchinfo.read(16)
             ncchinfolist.append(
-                tid_ncchinfo[::-1] + "\x01" + ("\0" * 7) + keyy_ncchinfo + "\x01" + ("\0" * 15) +
+                # even if it does work it can be stupid and i'm too lazy to make this better now
+                tid_ncchinfo[::-1] + "\x01" + ("\0" * 7) + keyy_ncchinfo + "\x01" + ("\0" * 3) + "\x00\x04" + ("\0" * 10) +
                 tid_ncchinfo + (
                     "/{}.Main.exheader.xorpad".format(binascii.hexlify(tid_ncchinfo[::-1]).upper())
                 ).ljust(112, "\0")
