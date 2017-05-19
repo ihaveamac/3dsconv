@@ -3,6 +3,7 @@
 *.cia
 *.xorpad
 *.exe
+*.bin
 ncchinfo.bin
 work/
 test/
@@ -82,4 +83,3 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
-
