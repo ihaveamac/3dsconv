@@ -39,7 +39,7 @@ Usage: {} [options] <game> [<game>...]
 Options:
   --output=<dir>       - Save converted files in specified directory
                            Default: {}
-  --boot9=<file>       - Path to dump of protected ARM9 bootROM
+  --boot9=<file>       - Path to dump of ARM9 bootROM, protected or full
   --overwrite          - Overwrite existing converted files
   --ignore-bad-hashes  - Ignore invalid hashes and CCI files and convert anyway
   --verbose            - Print more information'''.format(
@@ -188,10 +188,13 @@ if pyaes_found:
     print_v('pyaes found, Searching for protected ARM9 bootROM')
 
     def set_keys(boot9_file):
+        prot_offset = 0
+        if os.path.getsize(boot9_file) == 0x10000:
+            prot_offset = 0x8000
         with open(boot9_file, 'rb') as f:
             global keys_set, orig_ncch_key
             # get Original NCCH (slot 0x2C key X)
-            f.seek(0x59D0)
+            f.seek(0x59D0 + prot_offset)
             key = f.read(0x10)
             key_hash = hashlib.md5(key).hexdigest()
             if key_hash == 'e35bf88330f4f1b2bb6fd5b870a679ca':
@@ -208,11 +211,26 @@ if pyaes_found:
             set_keys(boot9_path)
         else:
             print_v('File doesn\'t exist.')
-    # check current directory
+    # check current directory for boot9.bin
+    if not keys_set:
+        print_v('... boot9.bin: ', end='')
+        if os.path.isfile('boot9.bin'):
+            set_keys('boot9.bin')
+        else:
+            print_v('File doesn\'t exist.')
+    # check current directory for boot9_prot.bin
     if not keys_set:
         print_v('... boot9_prot.bin: ', end='')
         if os.path.isfile('boot9_prot.bin'):
             set_keys('boot9_prot.bin')
+        else:
+            print_v('File doesn\'t exist.')
+    # check ~/.3ds/boot9.bin
+    if not keys_set:
+        path = os.path.expanduser('~') + '/.3ds/boot9.bin'
+        print_v('... ' + path + ': ', end='')
+        if os.path.isfile(path):
+            set_keys(path)
         else:
             print_v('File doesn\'t exist.')
     # check ~/.3ds/boot9_prot.bin

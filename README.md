@@ -21,11 +21,15 @@ python3 3dsconv.py [options] game.3ds [game.3ds ...]
 * `--verbose` - Print more information
 
 ## Encryption
-3dsconv requires the Nintendo 3DS protected ARM9 bootROM to decrypt files using Original NCCH encryption (slot 0x2C). The file is checked for in the order of:
+3dsconv requires the Nintendo 3DS full or protected ARM9 bootROM to decrypt files using Original NCCH encryption (slot 0x2C). The file is checked for in the order of:
 
 * Value of option `--boot9=` or variable `boot9_path`, if set
-* `boot9_prot.bin` in current working directory
-* `$HOME/.3ds/boot9_prot.bin` (Linux/Unix systems) or `%USERPROFILE%\.3ds\boot9_prot.bin` (Windows)
+* `boot9.bin` (full) in current working directory
+* `boot9_prot.bin` (protected) in current working directory
+* `~/.3ds/boot9.bin` (full)
+* `~/.3ds/boot9_prot.bin` (protected)
+
+Instructions to dump the bootROM will be put here later.
 
 ## Pack into standalone executable for Windows
 Using [py2exe for Python 3](https://pypi.python.org/pypi/py2exe/), you can pack the script into a Windows executable, primarily for use on a computer without Python, or for easy use in the Windows Command Prompt. [Python 3.4](https://www.python.org/downloads/release/python-344/) is required, 3.5 or later is currently not supported.
