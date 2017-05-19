@@ -108,9 +108,9 @@ def rol(val, r_bits, max_bits):
 
 
 # verbose messages
-def print_v(*msg):
+def print_v(*msg, end='\n'):
     if verbose:
-        print(*msg)
+        print(*msg, end=end)
 
 
 # verbose output, to be added into normal prints
@@ -195,34 +195,34 @@ if pyaes_found:
             key = f.read(0x10)
             key_hash = hashlib.md5(key).hexdigest()
             if key_hash == 'e35bf88330f4f1b2bb6fd5b870a679ca':
-                print_v('    Correct key found.')
+                print_v('Correct key found.')
                 orig_ncch_key = int.from_bytes(key, byteorder='big')
                 keys_set = True
                 return
-            print_v('    Corrupt file (invalid key).')
+            print_v('Corrupt file (invalid key).')
 
     # check supplied path by boot9_path or --boot9=
     if boot9_path != '':
-        print_v('... supplied boot9 path ({})'.format(boot9_path))
+        print_v('... supplied boot9 path ({}): '.format(boot9_path), end='')
         if os.path.isfile(boot9_path):
             set_keys(boot9_path)
         else:
-            print_v('    File doesn\'t exist.')
+            print_v('File doesn\'t exist.')
     # check current directory
     if not keys_set:
-        print_v('... ./boot9_prot.bin')
+        print_v('... boot9_prot.bin: ', end='')
         if os.path.isfile('boot9_prot.bin'):
             set_keys('boot9_prot.bin')
         else:
-            print_v('    File doesn\'t exist.')
+            print_v('File doesn\'t exist.')
     # check ~/.3ds/boot9_prot.bin
     if not keys_set:
         path = os.path.expanduser('~') + '/.3ds/boot9_prot.bin'
-        print_v('... ' + path)
+        print_v('... ' + path + ': ', end='')
         if os.path.isfile(path):
             set_keys(path)
         else:
-            print_v('    File doesn\'t exist.')
+            print_v('File doesn\'t exist.')
     if not keys_set:
         error('bootROM not found, encryption will not be supported')
 else:
@@ -397,6 +397,7 @@ for rom_file in files:
             chunk_records = b'\0' * 0xC
             chunk_records += struct.pack(">I", game_cxi_size)
             chunk_records += b'\0' * 0x20  # SHA-256 to be added later
+            # TODO: maybe switch to struct for readability
             if manual_cfa_offset != 0:
                 # 2nd content: ID 0x1, Index 0x1
                 chunk_records += binascii.unhexlify('000000010001000000000000')
@@ -408,6 +409,7 @@ for rom_file in files:
                 chunk_records += struct.pack('>I', dlpchild_cfa_size)
                 chunk_records += b'\0' * 0x20  # SHA-256 to be added later
 
+            # TODO: maybe switch to struct for readability
             cia.write(
                 # initial CIA header
                 binascii.unhexlify('2020000000000000000A000050030000') +
