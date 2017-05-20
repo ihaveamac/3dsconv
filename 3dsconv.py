@@ -13,6 +13,7 @@ import math
 import os
 import struct
 import sys
+import urllib2
 import zlib
 
 # check for pyaes which is used for crypto
@@ -460,6 +461,13 @@ for rom_file in files:
             # write save size in tmd
             cia.seek(0x2F5A)
             cia.write(save_size)
+
+            try:
+                tmdcdn = urllib2.urlopen("http://ccs.cdn.c.shop.nintendowifi.net/ccs/download/" + tid + "/tmd").read()
+                cia.seek(0x2F9C)
+                cia.write(tmdcdn[0x1DC:0x1DE])
+            except urllib2.URLError:
+                pass
 
             # Game Executable CXI NCCH Header + first-half ExHeader
             cia.seek(0, 2)
