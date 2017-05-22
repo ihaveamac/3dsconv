@@ -27,11 +27,11 @@ except ImportError:
 output_directory = ''  # override with --output=
 boot9_path = ''  # override with --boot9=
 
-version = '4.0'
+version = '4.1d'
 
 print('3dsconv.py ~ version ' + version)
 
-helptext = '''Convert Nintedo 3DS CCI (.3ds/.cci) to CIA
+helptext = '''Convert Nintendo 3DS CCI (.3ds/.cci) to CIA
 https://github.com/ihaveamac/3dsconv
 
 Usage: {} [options] <game> [<game>...]
@@ -389,57 +389,57 @@ for rom_file in files:
         # since we will only have three possible results to these, these are
         #   hardcoded variables for convenience
         # these could be generated but given this, I'm not doing that
-        # this is still ugly even after the rewrite, but it works
+        # I made it a little better
         tmd_padding = b'\0' * 12  # padding to add at the end of the tmd
         content_count = b'\x01'
-        tmd_size = b'\x34\x0B\0\0\0\0\0\0'
-        content_index = b'\x80'  # one extra bit in binary for each content
+        tmd_size = 0xB34
+        content_index = 0x80  # one extra bit in binary for each content
         # this is assuming that a game has a manual if it also has a dlp child
         # I've not seen a case of the opposite yet
         if manual_cfa_offset != 0:
             tmd_padding = b'\0' * 28
             content_count = b'\x02'
-            tmd_size = b'\x64\x0B\0\0\0\0\0\0'
-            content_index = b'\xC0'
+            tmd_size = 0xB64
+            content_index = 0xC0
         if dlpchild_cfa_offset != 0:
             tmd_padding = b'\0' * 44
             content_count = b'\x03'
-            tmd_size = b'\x94\x0B\0\0\0\0\0\0'
-            content_index = b'\xE0'
+            tmd_size = 0xB94
+            content_index = 0xE0
 
         # CIA
         with open(rom_file[2], 'wb') as cia:
             print_v('Writing CIA header...')
 
             # 1st content: ID 0x00000000, Index 0x0000
-            chunk_records = b'\0' * 0xC
+            chunk_records = struct.pack('>III', 0, 0, 0)
             chunk_records += struct.pack(">I", game_cxi_size)
             chunk_records += b'\0' * 0x20  # SHA-256 to be added later
             # TODO: maybe switch to struct for readability
             if manual_cfa_offset != 0:
                 # 2nd content: ID 0x1, Index 0x1
-                chunk_records += binascii.unhexlify('000000010001000000000000')
+                chunk_records += struct.pack('>III', 1, 0x10000, 0)
                 chunk_records += struct.pack('>I', manual_cfa_size)
                 chunk_records += b'\0' * 0x20  # SHA-256 to be added later
             if dlpchild_cfa_offset != 0:
                 # 3nd content: ID 0x2, Index 0x2
-                chunk_records += binascii.unhexlify('000000020002000000000000')
+                chunk_records += struct.pack('>III', 2, 0x20000, 0)
                 chunk_records += struct.pack('>I', dlpchild_cfa_size)
                 chunk_records += b'\0' * 0x20  # SHA-256 to be added later
 
             # TODO: maybe switch to struct for readability
             cia.write(
                 # initial CIA header
-                binascii.unhexlify('2020000000000000000A000050030000') +
+                struct.pack('<IHHII', 0x2020, 0, 0, 0xA00, 0x350) +
                 # tmd size, meta size, content size
                 # meta is after tmd and set to 0 here
                 # this is ugly as well
-                tmd_size + struct.pack('<I', game_cxi_size + manual_cfa_size
-                                       + dlpchild_cfa_size) +
+                struct.pack('<III', tmd_size, 0, game_cxi_size +
+                            manual_cfa_size + dlpchild_cfa_size) +
                 # content index
-                (b'\0' * 4) + content_index + (b'\0' * 0x201F) +
+                struct.pack('<Ic', 0, content_index) + (b'\0' * 0x201F) +
                 # cert chain, ticket, tmd
-                zlib.decompress(base64.b64decode(ciainfo)) + (b'\0' * 2412) +
+                zlib.decompress(base64.b64decode(ciainfo)) + (b'\0' * 0x96C) +
                 # chunk records in tmd + padding
                 chunk_records + tmd_padding
             )
