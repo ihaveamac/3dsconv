@@ -96,7 +96,7 @@ kXu4POnGfYkxV4bmPKOxSJ3ousoMINwK3bcZ/7vcqCP/y7Ex69b5g//I7/2Wr85+7thobOzCv5O/
 ZJM/ASAA+9rTvwbs2/h3EALr1cX9K7asT679CX9H+f+R/7+/kc0c3x/f3/f+S/6N3vq/AdS4R+w='''
 
 mu = 0x200  # media unit
-read_size = 8 * 1024 * 1024  # used from padxorer
+read_size = 0x800000  # used from padxorer
 zerokey = b'\0' * 16
 
 
@@ -204,43 +204,21 @@ if pyaes_found:
                 return
             print_v('Corrupt file (invalid key).')
 
+    def check_path(path):
+        if not keys_set:
+            print_v('... {}: '.format(path), end='')
+            if os.path.isfile(path):
+                set_keys(path)
+            else:
+                print_v('File doesn\'t exist.')
+
     # check supplied path by boot9_path or --boot9=
     if boot9_path != '':
-        print_v('... supplied boot9 path ({}): '.format(boot9_path), end='')
-        if os.path.isfile(boot9_path):
-            set_keys(boot9_path)
-        else:
-            print_v('File doesn\'t exist.')
-    # check current directory for boot9.bin
-    if not keys_set:
-        print_v('... boot9.bin: ', end='')
-        if os.path.isfile('boot9.bin'):
-            set_keys('boot9.bin')
-        else:
-            print_v('File doesn\'t exist.')
-    # check current directory for boot9_prot.bin
-    if not keys_set:
-        print_v('... boot9_prot.bin: ', end='')
-        if os.path.isfile('boot9_prot.bin'):
-            set_keys('boot9_prot.bin')
-        else:
-            print_v('File doesn\'t exist.')
-    # check ~/.3ds/boot9.bin
-    if not keys_set:
-        path = os.path.expanduser('~') + '/.3ds/boot9.bin'
-        print_v('... ' + path + ': ', end='')
-        if os.path.isfile(path):
-            set_keys(path)
-        else:
-            print_v('File doesn\'t exist.')
-    # check ~/.3ds/boot9_prot.bin
-    if not keys_set:
-        path = os.path.expanduser('~') + '/.3ds/boot9_prot.bin'
-        print_v('... ' + path + ': ', end='')
-        if os.path.isfile(path):
-            set_keys(path)
-        else:
-            print_v('File doesn\'t exist.')
+        check_path(boot9_path)
+    check_path('boot9.bin')
+    check_path('boot9_prot.bin')
+    check_path(os.path.expanduser('~') + '/.3ds/boot9.bin')
+    check_path(os.path.expanduser('~') + '/.3ds/boot9_prot.bin')
     if not keys_set:
         error('bootROM not found, encryption will not be supported')
 else:
@@ -437,7 +415,7 @@ for rom_file in files:
                 struct.pack('<III', tmd_size, 0, game_cxi_size +
                             manual_cfa_size + dlpchild_cfa_size) +
                 # content index
-                struct.pack('<Ic', 0, content_index) + (b'\0' * 0x201F) +
+                struct.pack('<IB', 0, content_index) + (b'\0' * 0x201F) +
                 # cert chain, ticket, tmd
                 zlib.decompress(base64.b64decode(ciainfo)) + (b'\0' * 0x96C) +
                 # chunk records in tmd + padding
