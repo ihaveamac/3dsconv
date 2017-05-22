@@ -97,7 +97,7 @@ ZJM/ASAA+9rTvwbs2/h3EALr1cX9K7asT679CX9H+f+R/7+/kc0c3x/f3/f+S/6N3vq/AdS4R+w='''
 
 mu = 0x200  # media unit
 read_size = 0x800000  # used from padxorer
-zerokey = b'\0' * 16
+zerokey = bytes(0x10)
 
 
 # used from http://www.falatic.com/index.php/108/python-and-bitwise-rotation
@@ -302,7 +302,8 @@ for rom_file in files:
             else:
                 # get normal key to decrypt parts of the file
                 key = b''
-                ctr_value = int(title_id_hex + '0100000000000000', 16)
+                ctr_extheader_v = int(title_id_hex + '0100000000000000', 16)
+                ctr_exefs_v = int(title_id_hex + '0200000000000000', 16)
                 if zerokey_encrypted:
                     key = zerokey
                 else:
@@ -327,8 +328,9 @@ for rom_file in files:
         extheader = rom.read(0x400)
         if encrypted:
             print_v('Decrypting ExtHeader...')
-            ctr = pyaes.Counter(initial_value=ctr_value)
-            cipher_extheader = pyaes.AESModeOfOperationCTR(key, counter=ctr)
+            ctr_extheader = pyaes.Counter(initial_value=ctr_extheader_v)
+            cipher_extheader = pyaes.AESModeOfOperationCTR(
+                key, counter=ctr_extheader)
             extheader = cipher_extheader.decrypt(extheader)
         extheader_hash = hashlib.sha256(extheader).digest()
         rom.seek(0x4160)
@@ -348,13 +350,17 @@ for rom_file in files:
         extheader = bytes(extheader_list)
         new_extheader_hash = hashlib.sha256(extheader).digest()
 
+        # get dependency list for meta region
+        dependency_list = extheader[0x40:0x1C0]
+
         # get save data size for tmd
         save_size = extheader[0x1C0:0x1C4]
 
         if encrypted:
             print_v('Re-encrypting ExtHeader...')
-            ctr = pyaes.Counter(initial_value=ctr_value)
-            cipher_extheader = pyaes.AESModeOfOperationCTR(key, counter=ctr)
+            ctr_extheader = pyaes.Counter(initial_value=ctr_extheader_v)
+            cipher_extheader = pyaes.AESModeOfOperationCTR(
+                key, counter=ctr_extheader)
             extheader = cipher_extheader.encrypt(extheader)
 
         # Game Executable NCCH Header
@@ -364,23 +370,58 @@ for rom_file in files:
         ncch_header[0x160:0x180] = list(new_extheader_hash)
         ncch_header = bytes(ncch_header)
 
+        # get icon from ExeFS
+        print_v('Getting SMDH...')
+        exefs_offset = struct.unpack('<I', ncch_header[0x1A0:0x1A4])[0] * mu
+        rom.seek(game_cxi_offset + exefs_offset)
+        # exefs can contain up to 10 file headers but only 4 are used normally
+        exefs_file_header = rom.read(0x40)
+        if encrypted:
+            print_v('Decrypting ExeFS Header...')
+            ctr_exefs = pyaes.Counter(initial_value=ctr_exefs_v)
+            cipher_exefs = pyaes.AESModeOfOperationCTR(
+                key, counter=ctr_exefs)
+            exefs_file_header = cipher_exefs.encrypt(exefs_file_header)
+        for header_num in range(0, 4):
+            if exefs_file_header[header_num * 0x10:0x8 + (header_num * 0x10)]\
+                    .rstrip(b'\0') == b'icon':  # wtf indentation
+                exefs_icon_offset = struct.unpack(
+                    '<I', exefs_file_header[0x8 + (header_num * 0x10):
+                                            0xC + (header_num * 0x10)])[0]
+                rom.seek(exefs_icon_offset + 0x200 - 0x40, 1)
+                print(hex(rom.tell()))
+                exefs_icon = rom.read(0x36C0)
+                if encrypted:
+                    ctr_exefs_icon_v = ctr_exefs_v +\
+                        (exefs_icon_offset // 0x10) + 0x20
+                    print(hex(ctr_exefs_icon_v))
+                    ctr_exefs_icon = pyaes.Counter(
+                        initial_value=ctr_exefs_icon_v)
+                    cipher_exefs_icon = pyaes.AESModeOfOperationCTR(
+                        key, counter=ctr_exefs_icon)
+                    exefs_icon = cipher_exefs_icon.decrypt(exefs_icon)
+                break
+        if not exefs_icon:
+            error('Icon not found in the ExeFS.')
+            continue
+
         # since we will only have three possible results to these, these are
         #   hardcoded variables for convenience
         # these could be generated but given this, I'm not doing that
         # I made it a little better
-        tmd_padding = b'\0' * 12  # padding to add at the end of the tmd
+        tmd_padding = bytes(12)  # padding to add at the end of the tmd
         content_count = b'\x01'
         tmd_size = 0xB34
         content_index = 0x80  # one extra bit in binary for each content
         # this is assuming that a game has a manual if it also has a dlp child
         # I've not seen a case of the opposite yet
         if manual_cfa_offset != 0:
-            tmd_padding = b'\0' * 28
+            tmd_padding = bytes(28)
             content_count = b'\x02'
             tmd_size = 0xB64
             content_index = 0xC0
         if dlpchild_cfa_offset != 0:
-            tmd_padding = b'\0' * 44
+            tmd_padding = bytes(44)
             content_count = b'\x03'
             tmd_size = 0xB94
             content_index = 0xE0
@@ -389,35 +430,32 @@ for rom_file in files:
         with open(rom_file[2], 'wb') as cia:
             print_v('Writing CIA header...')
 
-            # 1st content: ID 0x00000000, Index 0x0000
+            # 1st content: ID 0x, Index 0x0
             chunk_records = struct.pack('>III', 0, 0, 0)
             chunk_records += struct.pack(">I", game_cxi_size)
-            chunk_records += b'\0' * 0x20  # SHA-256 to be added later
-            # TODO: maybe switch to struct for readability
+            chunk_records += bytes(0x20)  # SHA-256 to be added later
             if manual_cfa_offset != 0:
                 # 2nd content: ID 0x1, Index 0x1
                 chunk_records += struct.pack('>III', 1, 0x10000, 0)
                 chunk_records += struct.pack('>I', manual_cfa_size)
-                chunk_records += b'\0' * 0x20  # SHA-256 to be added later
+                chunk_records += bytes(0x20)  # SHA-256 to be added later
             if dlpchild_cfa_offset != 0:
                 # 3nd content: ID 0x2, Index 0x2
                 chunk_records += struct.pack('>III', 2, 0x20000, 0)
                 chunk_records += struct.pack('>I', dlpchild_cfa_size)
-                chunk_records += b'\0' * 0x20  # SHA-256 to be added later
+                chunk_records += bytes(0x20)  # SHA-256 to be added later
 
-            # TODO: maybe switch to struct for readability
             cia.write(
                 # initial CIA header
                 struct.pack('<IHHII', 0x2020, 0, 0, 0xA00, 0x350) +
                 # tmd size, meta size, content size
-                # meta is after tmd and set to 0 here
                 # this is ugly as well
-                struct.pack('<III', tmd_size, 0, game_cxi_size +
+                struct.pack('<III', tmd_size, 0x3AC0, game_cxi_size +
                             manual_cfa_size + dlpchild_cfa_size) +
                 # content index
-                struct.pack('<IB', 0, content_index) + (b'\0' * 0x201F) +
+                struct.pack('<IB', 0, content_index) + (bytes(0x201F)) +
                 # cert chain, ticket, tmd
-                zlib.decompress(base64.b64decode(ciainfo)) + (b'\0' * 0x96C) +
+                zlib.decompress(base64.b64decode(ciainfo)) + (bytes(0x96C)) +
                 # chunk records in tmd + padding
                 chunk_records + tmd_padding
             )
@@ -526,12 +564,19 @@ for rom_file in files:
 
             cia.seek(0x2FA4)
             info_records_hash = hashlib.sha256(
-                b'\0\0\0' + content_count + chunk_records_hash.digest()
-                + (b'\0' * 0x8DC)
+                bytes(3) + content_count + chunk_records_hash.digest()
+                + (bytes(0x8DC))
             )
             print_v('Content info records SHA-256 hash:')
             print_v('  {}'.format(info_records_hash.hexdigest().upper()))
             cia.write(info_records_hash.digest())
+
+            # write Meta region
+            cia.seek(0, 2)
+            cia.write(
+                dependency_list + bytes(0x180) + struct.pack('<I', 0x2) +
+                bytes(0xFC) + exefs_icon
+            )
 
     processed_files += 1
 

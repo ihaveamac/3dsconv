@@ -1,6 +1,7 @@
 # ignore roms and stuff
 *.3ds
 *.cia
+*.cxi
 *.xorpad
 *.exe
 *.bin
