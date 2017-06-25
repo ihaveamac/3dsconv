@@ -140,6 +140,7 @@ verbose = '--verbose' in sys.argv
 overwrite = '--overwrite' in sys.argv
 no_convert = any(arg in sys.argv for arg in ('--no-convert', '--noconvert'))
 ignore_bad_hashes = '--ignore-bad-hashes' in sys.argv
+dev_keys = '--dev-keys' in sys.argv
 
 # deprecated options, used for warnings
 # the argument checker after also checks for --xorpads=
@@ -187,17 +188,26 @@ orig_ncch_key = 0
 if pyaes_found:
     print_v('pyaes found, Searching for protected ARM9 bootROM')
 
+    if dev_keys:
+        print('Devkit keys are being used since `--dev-keys\' was passed. '
+              'Note the resulting files will still be encrypted with devkit '
+              'keys.')
+
     def set_keys(boot9_file):
-        prot_offset = 0
+        keys_offset = 0
         if os.path.getsize(boot9_file) == 0x10000:
-            prot_offset = 0x8000
+            keys_offset += 0x8000
+        if dev_keys:
+            keys_offset += 0x400
         with open(boot9_file, 'rb') as f:
             global keys_set, orig_ncch_key
             # get Original NCCH (slot 0x2C key X)
-            f.seek(0x59D0 + prot_offset)
+            f.seek(0x59D0 + keys_offset)
             key = f.read(0x10)
             key_hash = hashlib.md5(key).hexdigest()
-            if key_hash == 'e35bf88330f4f1b2bb6fd5b870a679ca':
+            correct_hash = ('49aa32c775608af6298ddc0fc6d18a7e' if dev_keys else
+                            'e35bf88330f4f1b2bb6fd5b870a679ca')
+            if key_hash == correct_hash:
                 print_v('Correct key found.')
                 orig_ncch_key = int.from_bytes(key, byteorder='big')
                 keys_set = True
@@ -389,12 +399,10 @@ for rom_file in files:
                     '<I', exefs_file_header[0x8 + (header_num * 0x10):
                                             0xC + (header_num * 0x10)])[0]
                 rom.seek(exefs_icon_offset + 0x200 - 0x40, 1)
-                print(hex(rom.tell()))
                 exefs_icon = rom.read(0x36C0)
                 if encrypted:
                     ctr_exefs_icon_v = ctr_exefs_v +\
                         (exefs_icon_offset // 0x10) + 0x20
-                    print(hex(ctr_exefs_icon_v))
                     ctr_exefs_icon = pyaes.Counter(
                         initial_value=ctr_exefs_icon_v)
                     cipher_exefs_icon = pyaes.AESModeOfOperationCTR(
