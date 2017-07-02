@@ -27,7 +27,7 @@ except ImportError:
 output_directory = ''  # override with --output=
 boot9_path = ''  # override with --boot9=
 
-version = '4.1'
+version = '4.2dev'
 
 print('3dsconv.py ~ version ' + version)
 
@@ -418,21 +418,19 @@ for rom_file in files:
         # these could be generated but given this, I'm not doing that
         # I made it a little better
         tmd_padding = bytes(12)  # padding to add at the end of the tmd
-        content_count = b'\x01'
+        content_count = 1
         tmd_size = 0xB34
-        content_index = 0x80  # one extra bit in binary for each content
-        # this is assuming that a game has a manual if it also has a dlp child
-        # I've not seen a case of the opposite yet
+        content_index = 0b10000000
         if manual_cfa_offset != 0:
-            tmd_padding = bytes(28)
-            content_count = b'\x02'
-            tmd_size = 0xB64
-            content_index = 0xC0
+            tmd_padding += bytes(16)
+            content_count += 1
+            tmd_size += 0x30
+            content_index += 0b01000000
         if dlpchild_cfa_offset != 0:
-            tmd_padding = bytes(44)
-            content_count = b'\x03'
-            tmd_size = 0xB94
-            content_index = 0xE0
+            tmd_padding += bytes(16)
+            content_count += 1
+            tmd_size += 0x30
+            content_index += 0b00100000
 
         # CIA
         with open(rom_file[2], 'wb') as cia:
@@ -453,13 +451,14 @@ for rom_file in files:
                 chunk_records += struct.pack('>I', dlpchild_cfa_size)
                 chunk_records += bytes(0x20)  # SHA-256 to be added later
 
+            content_size = game_cxi_size + manual_cfa_size + dlpchild_cfa_size
+
             cia.write(
                 # initial CIA header
                 struct.pack('<IHHII', 0x2020, 0, 0, 0xA00, 0x350) +
                 # tmd size, meta size, content size
                 # this is ugly as well
-                struct.pack('<III', tmd_size, 0x3AC0, game_cxi_size +
-                            manual_cfa_size + dlpchild_cfa_size) +
+                struct.pack('<III', tmd_size, 0x3AC0, content_size) +
                 # content index
                 struct.pack('<IB', 0, content_index) + (bytes(0x201F)) +
                 # cert chain, ticket, tmd
@@ -473,7 +472,7 @@ for rom_file in files:
 
             # write content count in tmd
             cia.seek(0x2F9F)
-            cia.write(content_count)
+            cia.write(bytes([content_count]))
 
             # write title ID in ticket and tmd
             cia.seek(0x2C1C)
@@ -512,6 +511,8 @@ for rom_file in files:
             cia.write(game_cxi_hash.digest())
             chunk_records[0x10:0x30] = list(game_cxi_hash.digest())
 
+            cr_offset = 0
+
             # Manual CFA
             if manual_cfa_offset != 0:
                 cia.seek(0, 2)
@@ -535,6 +536,7 @@ for rom_file in files:
                 cia.seek(0x3904)
                 cia.write(manual_cfa_hash.digest())
                 chunk_records[0x40:0x60] = list(manual_cfa_hash.digest())
+                cr_offset += 0x30
 
             # Download Play child container CFA
             if dlpchild_cfa_offset != 0:
@@ -545,8 +547,8 @@ for rom_file in files:
                 left = dlpchild_cfa_size
                 # i am so sorry
                 for __ in itertools.repeat(
-                        0, int(math.floor((dlpchild_cfa_size
-                               / read_size)) + 1)):
+                        0, int(math.floor((dlpchild_cfa_size /
+                               read_size)) + 1)):
                     to_read = min(read_size, left)
                     tmpread = rom.read(to_read)
                     dlpchild_cfa_hash.update(tmpread)
@@ -558,9 +560,11 @@ for rom_file in files:
                         break
                 print_v('- Download Play child container CFA SHA-256 hash:')
                 print_v('  {}'.format(dlpchild_cfa_hash.hexdigest().upper()))
-                cia.seek(0x3934)
+                cia.seek(0x3904 + cr_offset)
                 cia.write(dlpchild_cfa_hash.digest())
-                chunk_records[0x70:0x90] = list(dlpchild_cfa_hash.digest())
+                chunk_records[0x40 + cr_offset:0x60 + cr_offset] = list(
+                    dlpchild_cfa_hash.digest()
+                )
 
             # update final hashes
             print_v('\nUpdating hashes...')
@@ -568,12 +572,12 @@ for rom_file in files:
             print_v('Content chunk records SHA-256 hash:')
             print_v('  {}'.format(chunk_records_hash.hexdigest().upper()))
             cia.seek(0x2FC7)
-            cia.write(content_count + chunk_records_hash.digest())
+            cia.write(bytes([content_count]) + chunk_records_hash.digest())
 
             cia.seek(0x2FA4)
             info_records_hash = hashlib.sha256(
-                bytes(3) + content_count + chunk_records_hash.digest()
-                + (bytes(0x8DC))
+                bytes(3) + bytes([content_count]) +
+                chunk_records_hash.digest() + (bytes(0x8DC))
             )
             print_v('Content info records SHA-256 hash:')
             print_v('  {}'.format(info_records_hash.hexdigest().upper()))
