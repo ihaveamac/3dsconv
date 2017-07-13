@@ -5,6 +5,7 @@
 *.xorpad
 *.exe
 *.bin
+*.egg-info
 ncchinfo.bin
 work/
 test/
