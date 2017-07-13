@@ -15,6 +15,9 @@ import struct
 import sys
 import zlib
 
+def main():
+    pass
+
 # check for pyaes which is used for crypto
 pyaes_found = False
 try:
