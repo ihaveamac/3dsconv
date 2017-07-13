@@ -15,8 +15,10 @@ import struct
 import sys
 import zlib
 
+
 def main():
     pass
+
 
 # check for pyaes which is used for crypto
 pyaes_found = False
@@ -30,7 +32,7 @@ except ImportError:
 output_directory = ''  # override with --output=
 boot9_path = ''  # override with --boot9=
 
-version = '4.2dev'
+version = '4.2.dev0'
 
 print('3dsconv.py ~ version ' + version)
 
@@ -45,7 +47,8 @@ Options:
   --boot9=<file>       - Path to dump of ARM9 bootROM, protected or full
   --overwrite          - Overwrite existing converted files
   --ignore-bad-hashes  - Ignore invalid hashes and CCI files and convert anyway
-  --verbose            - Print more information'''.format(
+  --verbose            - Print more information
+  --dev-keys           - Use developer-unit keys'''.format(
     sys.argv[0],
     'current directory' if output_directory == '' else '"{}"'.format(
         output_directory

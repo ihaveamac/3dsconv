@@ -10,6 +10,8 @@
 On Windows, CCIs can be dragged on top of `3dsconv.exe`. See [Encryption](#encryption) for details about encrypted files.
 
 ### Advanced options
+3dsconv can be used as a standalone script, or installed using `python3 setup.py install`.
+
 ```bash
 python3 3dsconv.py [options] game.3ds [game.3ds ...]
 ```
@@ -19,6 +21,7 @@ python3 3dsconv.py [options] game.3ds [game.3ds ...]
 * `--overwrite` - Overwrite existing converted files
 * `--ignore-bad-hashes` - Ignore invalid hashes and CCI files and convert anyway
 * `--verbose` - Print more information
+* `--dev-keys` - Use developer-unit keys
 
 ## Encryption
 3dsconv requires the Nintendo 3DS full or protected ARM9 bootROM to decrypt files using Original NCCH encryption (slot 0x2C). The file is checked for in the order of:
@@ -29,7 +32,9 @@ python3 3dsconv.py [options] game.3ds [game.3ds ...]
 * `~/.3ds/boot9.bin` (full)
 * `~/.3ds/boot9_prot.bin` (protected)
 
-Instructions to dump the bootROM will be put here later.
+boot9strap is required to dump. Setup can be found at [3DS Guide](https://3ds.guide/). Hold START+SELECT+X at boot to dump to `sdmc:/boot9strap/boot9.bin`.
+
+Developer-unit keys are supported when using `--dev-keys`. This does not decrypt or change the encryption of the output file, therefore CIAs will still only work on dev-units without separate decryption or changing encryption. This only seems to be used for SystemUpdater.
 
 ## Pack into standalone executable for Windows
 Using [py2exe for Python 3](https://pypi.python.org/pypi/py2exe/), you can pack the script into a Windows executable, primarily for use on a computer without Python, or for easy use in the Windows Command Prompt. [Python 3.4](https://www.python.org/downloads/release/python-344/) is required, 3.5 or later is currently not supported.
