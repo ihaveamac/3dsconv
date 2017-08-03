@@ -176,12 +176,13 @@ if dev_keys:
                     correct_hash = 'd5c3d811a7eb87340aa9f4ab1841b6c4'
                     if hashlib.md5(certchain).hexdigest() == correct_hash:
                         certchain_dev = certchain
-                    else:
-                        error('Invalid dev certchain. See README for details.')
-                        sys.exit(1)
 
     check_path('certchain-dev.bin')
     check_path(os.path.expanduser('~') + '/.3ds/certchain-dev.bin')
+
+    if not certchain_dev:
+        error('Invalid or missing dev certchain. See README for details.')
+        sys.exit(1)
 
 files = []
 for arg in sys.argv[1:]:
