@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='3dsconv',
-    version='4.2.dev0',
+    version='4.2',
     url='https://github.com/ihaveamac/3dsconv',
     author='Ian',
     license='MIT',

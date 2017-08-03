@@ -32,7 +32,7 @@ except ImportError:
 output_directory = ''  # override with --output=
 boot9_path = ''  # override with --boot9=
 
-version = '4.2.dev0'
+version = '4.2'
 
 print('3dsconv.py ~ version ' + version)
 
