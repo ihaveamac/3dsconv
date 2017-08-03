@@ -58,48 +58,52 @@ Options:
 if len(sys.argv) < 2:
     sys.exit(helptext)
 
-# includes certificate chain, ticket (blank titlekey and title ID),
-#   tmd signature with blank header (blank title ID) and blank content info
-#   records
+# don't know of a better way to store binary data in a script
 # compressed using zlib then encoded with base64
-# I should find a better way to store this... this is so ugly
-ciainfo = b'''
-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'''
+
+# retail CIA certificate chain
+certchain_retail = b'''
+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
+JWFnDuv/P7kyh1k='''
+
+# ticket (blank titlekey and title ID), tmd signature with blank header
+#   (blank title ID) and blank content info records
+ticket_tmd = b'''
+eJxjYGRgYRgFZIOg/PwSXWdHAwgw1o0IhjKTaW83I+2toJMlBAAjgwiQXAPEIlA2CGgwQFzXAsbM
+EMH/BMBAOB8vGM1/FAH0/OccAGUmEacfR/J2AAAmBS75'''
 
 mu = 0x200  # media unit
 read_size = 0x800000  # used from padxorer
@@ -467,8 +471,11 @@ for rom_file in files:
                 struct.pack('<III', tmd_size, 0x3AC0, content_size) +
                 # content index
                 struct.pack('<IB', 0, content_index) + (bytes(0x201F)) +
-                # cert chain, ticket, tmd
-                zlib.decompress(base64.b64decode(ciainfo)) + (bytes(0x96C)) +
+                # cert chain
+                zlib.decompress(base64.b64decode(certchain_retail)) +
+                # ticket, tmd
+                zlib.decompress(base64.b64decode(ticket_tmd)) +
+                (bytes(0x96C)) +
                 # chunk records in tmd + padding
                 chunk_records + tmd_padding
             )
