@@ -160,6 +160,29 @@ use_deprecated = any(arg in sys.argv for arg in ('--gen-ncchinfo',
 total_files = 0
 processed_files = 0
 
+certchain_dev = b''
+if dev_keys:
+    print('Devkit keys are being used since `--dev-keys\' was passed. Note '
+          'the resulting files will still be encrypted with devkit keys, and '
+          'only installable on developer units without extra conversion.')
+    print('Looking for certchain-dev.bin...')
+
+    def check_path(path):
+        global certchain_dev
+        if not certchain_dev:
+            if os.path.isfile(path):
+                with open(path, 'rb') as c:
+                    certchain = c.read(0xA00)
+                    correct_hash = 'd5c3d811a7eb87340aa9f4ab1841b6c4'
+                    if hashlib.md5(certchain).hexdigest() == correct_hash:
+                        certchain_dev = certchain
+                    else:
+                        error('Invalid dev certchain. See README for details.')
+                        sys.exit(1)
+
+    check_path('certchain-dev.bin')
+    check_path(os.path.expanduser('~') + '/.3ds/certchain-dev.bin')
+
 files = []
 for arg in sys.argv[1:]:
     if arg[:2] != '--':
@@ -197,11 +220,6 @@ keys_set = False
 orig_ncch_key = 0
 if pyaes_found:
     print_v('pyaes found, Searching for protected ARM9 bootROM')
-
-    if dev_keys:
-        print('Devkit keys are being used since `--dev-keys\' was passed. '
-              'Note the resulting files will still be encrypted with devkit '
-              'keys.')
 
     def set_keys(boot9_file):
         keys_offset = 0
@@ -472,7 +490,8 @@ for rom_file in files:
                 # content index
                 struct.pack('<IB', 0, content_index) + (bytes(0x201F)) +
                 # cert chain
-                zlib.decompress(base64.b64decode(certchain_retail)) +
+                (certchain_dev if dev_keys else
+                 zlib.decompress(base64.b64decode(certchain_retail))) +
                 # ticket, tmd
                 zlib.decompress(base64.b64decode(ticket_tmd)) +
                 (bytes(0x96C)) +

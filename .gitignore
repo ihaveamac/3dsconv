@@ -1,5 +1,7 @@
 # ignore roms and stuff
 *.3ds
+*.cci
+*.csu
 *.cia
 *.cxi
 *.xorpad
