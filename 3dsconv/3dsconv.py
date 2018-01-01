@@ -32,7 +32,7 @@ except ImportError:
 output_directory = ''  # override with --output=
 boot9_path = ''  # override with --boot9=
 
-version = '4.2'
+version = '4.21'
 
 print('3dsconv.py ~ version ' + version)
 
@@ -421,6 +421,7 @@ for rom_file in files:
             cipher_exefs = pyaes.AESModeOfOperationCTR(
                 key, counter=ctr_exefs)
             exefs_file_header = cipher_exefs.encrypt(exefs_file_header)
+        exefs_icon = None
         for header_num in range(0, 4):
             if exefs_file_header[header_num * 0x10:0x8 + (header_num * 0x10)]\
                     .rstrip(b'\0') == b'icon':  # wtf indentation
@@ -438,7 +439,7 @@ for rom_file in files:
                         key, counter=ctr_exefs_icon)
                     exefs_icon = cipher_exefs_icon.decrypt(exefs_icon)
                 break
-        if not exefs_icon:
+        if exefs_icon is None:
             error('Icon not found in the ExeFS.')
             continue
 
