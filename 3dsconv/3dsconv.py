@@ -47,6 +47,7 @@ Options:
   --boot9=<file>       - Path to dump of ARM9 bootROM, protected or full
   --overwrite          - Overwrite existing converted files
   --ignore-bad-hashes  - Ignore invalid hashes and CCI files and convert anyway
+  --ignore-encryption  - Ignore the encryption header value, assume the ROM as unencrypted
   --verbose            - Print more information
   --dev-keys           - Use developer-unit keys'''.format(
     sys.argv[0],
@@ -150,6 +151,7 @@ verbose = '--verbose' in sys.argv
 overwrite = '--overwrite' in sys.argv
 no_convert = any(arg in sys.argv for arg in ('--no-convert', '--noconvert'))
 ignore_bad_hashes = '--ignore-bad-hashes' in sys.argv
+ignore_encryption = '--ignore-encryption' in sys.argv
 dev_keys = '--dev-keys' in sys.argv
 
 # deprecated options, used for warnings
@@ -327,7 +329,7 @@ for rom_file in files:
         rom.seek(game_cxi_offset + 0x18F)
         # pay no mind to this ugliness...
         encryption_bitmask = struct.pack('c', rom.read(1))[0]
-        encrypted = not encryption_bitmask & 0x4
+        encrypted = not (encryption_bitmask & 0x4 or ignore_encryption == True)
         zerokey_encrypted = encryption_bitmask & 0x1
 
         if encrypted:
@@ -356,8 +358,10 @@ for rom_file in files:
                             binascii.hexlify(key).decode('utf-8').upper())
 
         print('Converting {} ({})...'.format(
-            rom_file[1], 'zerokey encrypted' if zerokey_encrypted else (
-                'encrypted' if encrypted else 'decrypted'
+            rom_file[1], 'ignore encryption' if ignore_encryption else (
+                'zerokey encrypted' if zerokey_encrypted else (
+                    'encrypted' if encrypted else 'decrypted'
+                )
             )
         ))
 
@@ -375,7 +379,10 @@ for rom_file in files:
         rom.seek(0x4160)
         ncch_extheader_hash = rom.read(0x20)
         if extheader_hash != ncch_extheader_hash:
-            print('This file may be corrupt (invalid ExtHeader hash).')
+            print(
+                'This file may be corrupt (invalid ExtHeader hash). '
+                'If you are certain that the rom is decrypted, use --ignore-encryption'
+            )
             if ignore_bad_hashes:
                 print('Converting anyway because --ignore-bad-hashes was '
                       'passed.')
