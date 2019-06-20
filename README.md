@@ -20,6 +20,7 @@ python3 3dsconv.py [options] game.3ds [game.3ds ...]
 * `--boot9=<file>` - Path to dump of protected ARM9 bootROM
 * `--overwrite` - Overwrite existing converted files
 * `--ignore-bad-hashes` - Ignore invalid hashes and CCI files and convert anyway
+* `--ignore-encryption` - Ignore the encryption header value, assume the ROM as unencrypted
 * `--verbose` - Print more information
 * `--dev-keys` - Use developer-unit keys
 
