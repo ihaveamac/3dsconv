@@ -414,6 +414,9 @@ for rom_file in files:
         rom.seek(game_cxi_offset)
         ncch_header = list(rom.read(0x200))
         ncch_header[0x160:0x180] = list(new_extheader_hash)
+        if ignore_encryption == True:
+            print_v('\nEncryption is ignored, setting ncchflag[7] to NoCrypto')
+            ncch_header[0x18F] |= 0x4
         ncch_header = bytes(ncch_header)
 
         # get icon from ExeFS
