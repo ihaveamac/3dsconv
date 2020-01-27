@@ -21,7 +21,7 @@ def main():
 
 def chb9(namevar):
     if os.environ.get(namevar) != None:
-        boot9_path = os.environ[namevar]
+        global boot9_path = os.environ[namevar]
 
 # check for pyaes which is used for crypto
 pyaes_found = False
