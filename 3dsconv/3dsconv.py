@@ -19,6 +19,9 @@ import zlib
 def main():
     pass
 
+def chb9(namevar):
+    if os.environ.get(namevar) != None:
+        global boot9_path = os.environ[namevar]
 
 # check for pyaes which is used for crypto
 pyaes_found = False
@@ -31,6 +34,7 @@ except ImportError:
 # default paths, relative to cwd
 output_directory = ''  # override with --output=
 boot9_path = ''  # override with --boot9=
+chb9('BOOT9_PATH')
 
 version = '4.21'
 
