@@ -9,5 +9,6 @@ setup(
     description='Converts Nintendo 3DS CTR Cart Image files (CCI, ".cci", ".3ds") to the CTR Importable Archive format (CIA)',
     install_requires=['pyaes'],
     packages=find_packages(),
-    entry_points={'console_scripts': ['3dsconv=3dsconv.3dsconv:main']},
+    py_modules=['wrapper'],
+    entry_points={'console_scripts': ['3dsconv=wrapper:main']},
 )
