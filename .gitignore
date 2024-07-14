@@ -13,6 +13,7 @@ work/
 test/
 build/
 dist/
+*__pycache__*
 
 # Created by .ignore support plugin (hsz.mobi)
 ### JetBrains template

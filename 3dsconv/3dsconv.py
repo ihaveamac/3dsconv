@@ -4,6 +4,7 @@
 # license: MIT License
 # https://github.com/ihaveamac/3dsconv
 
+import argparse
 import base64
 import binascii
 import glob
@@ -19,10 +20,89 @@ import zlib
 def main():
     pass
 
-def chb9(namevar):
-    global boot9_path
-    if os.environ.get(namevar) != None:
-        boot9_path = os.environ[namevar]
+
+def parse_args() -> argparse.Namespace:
+    '''Parses and returns the command-line arguments'''
+
+    parser = argparse.ArgumentParser(
+        prog='3dsconv.py',
+        description='Convert Nintendo 3DS CCI (.3ds/.cci) to CIA'
+    )
+
+    parser.add_argument(
+        '-o', '--output',
+        metavar='output-directory',
+        default='',
+        help='Save converted files in specified directory (default: current directory)'
+    )
+
+    parser.add_argument(
+        '-b', '--boot9',
+        metavar='path-to-boot9',
+        default=os.environ.get('BOOT9_PATH'),
+        help='Path to dump of ARM9 bootROM, protected or full'
+    )
+
+    parser.add_argument(
+        '--overwrite',
+        action='store_true',
+        help='Overwrite existing converted files'
+    )
+
+    parser.add_argument(
+        '--ignore-bad-hashes',
+        action='store_true',
+        help='Ignore invalid hashes and CCI files and convert anyway'
+    )
+
+    parser.add_argument(
+        '--ignore-encryption',
+        action='store_true',
+        help='Ignore the encryption header value, assume the ROM as unencrypted'
+    )
+
+    parser.add_argument(
+        '-v', '--verbose',
+        action='store_true',
+        help='Print more information'
+    )
+
+    parser.add_argument(
+        '--dev-keys',
+        action='store_true',
+        help='Use developer-unit keys'
+    )
+
+    # deprecated arguments; we want to print out a message on this
+    # in the future we can probably use an `action` to handle this.
+    parser.add_argument(
+        '--gen-ncchinfo', '--gen-ncch-all', '--xorpads',
+        dest='use_deprecated',
+        action='store_true',
+        help=argparse.SUPPRESS
+    )
+
+    # arguments kept for backwards compatibility
+    parser.add_argument(
+        '--no-convert', '--noconvert',
+        default=argparse.SUPPRESS,
+        help=argparse.SUPPRESS
+    )
+
+    # positional arguments
+    parser.add_argument(
+        'game',
+        nargs='+',
+        help='Game file to convert to CIA'
+    )
+
+    # if no arguments are provided, display help message
+    if len(sys.argv)==1:
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    return parser.parse_args()
+
 
 # check for pyaes which is used for crypto
 pyaes_found = False
@@ -32,37 +112,9 @@ try:
 except ImportError:
     pass  # this is handled later
 
-# default paths, relative to cwd
-output_directory = ''  # override with --output=
-boot9_path = ''  # override with --boot9=
-chb9('BOOT9_PATH')
-
 version = '4.21'
 
-print('3dsconv.py ~ version ' + version)
-
-helptext = '''Convert Nintendo 3DS CCI (.3ds/.cci) to CIA
-https://github.com/ihaveamac/3dsconv
-
-Usage: {} [options] <game> [<game>...]
-
-Options:
-  --output=<dir>       - Save converted files in specified directory
-                           Default: {}
-  --boot9=<file>       - Path to dump of ARM9 bootROM, protected or full
-  --overwrite          - Overwrite existing converted files
-  --ignore-bad-hashes  - Ignore invalid hashes and CCI files and convert anyway
-  --ignore-encryption  - Ignore the encryption header value, assume the ROM as unencrypted
-  --verbose            - Print more information
-  --dev-keys           - Use developer-unit keys'''.format(
-    sys.argv[0],
-    'current directory' if output_directory == '' else '"{}"'.format(
-        output_directory
-    )
-)
-
-if len(sys.argv) < 2:
-    sys.exit(helptext)
+args = parse_args()
 
 # don't know of a better way to store binary data in a script
 # compressed using zlib then encoded with base64
@@ -125,13 +177,13 @@ def rol(val, r_bits, max_bits):
 
 # verbose messages
 def print_v(*msg, end='\n'):
-    if verbose:
+    if args.verbose:
         print(*msg, end=end)
 
 
 # verbose output, to be added into normal prints
 def v(msg):
-    if verbose:
+    if args.verbose:
         return msg
     return ''
 
@@ -151,24 +203,11 @@ def show_progress(val, maxval):
     sys.stdout.flush()
 
 
-# options - contains older versions for compatibility reasons
-verbose = '--verbose' in sys.argv
-overwrite = '--overwrite' in sys.argv
-no_convert = any(arg in sys.argv for arg in ('--no-convert', '--noconvert'))
-ignore_bad_hashes = '--ignore-bad-hashes' in sys.argv
-ignore_encryption = '--ignore-encryption' in sys.argv
-dev_keys = '--dev-keys' in sys.argv
-
-# deprecated options, used for warnings
-# the argument checker after also checks for --xorpads=
-use_deprecated = any(arg in sys.argv for arg in ('--gen-ncchinfo',
-                                                 '--gen-ncch-all'))
-
 total_files = 0
 processed_files = 0
 
 certchain_dev = b''
-if dev_keys:
+if args.dev_keys:
     print('Devkit keys are being used since `--dev-keys\' was passed. Note '
           'the resulting files will still be encrypted with devkit keys, and '
           'only installable on developer units without extra conversion.')
@@ -192,38 +231,29 @@ if dev_keys:
         sys.exit(1)
 
 files = []
-for arg in sys.argv[1:]:
-    if arg[:2] != '--':
-        to_add = glob.glob(arg)
-        if len(to_add) == 0:
-            error('"{}" doesn\'t exist.'.format(arg))
+for arg in args.game:
+    to_add = glob.glob(arg)
+    if len(to_add) == 0:
+        error('"{}" doesn\'t exist.'.format(arg))
+        total_files += 1
+    else:
+        for input_file in to_add:
+            rom_name = os.path.basename(os.path.splitext(input_file)[0])
+            cia_name = os.path.join(args.output, rom_name + '.cia')
+            if not args.overwrite and os.path.isfile(cia_name):
+                error('"{}" already exists. Use `--overwrite\' to force'
+                        'conversion.'.format(cia_name))
+                continue
             total_files += 1
-        else:
-            for input_file in to_add:
-                rom_name = os.path.basename(os.path.splitext(input_file)[0])
-                cia_name = os.path.join(output_directory, rom_name + '.cia')
-                if not overwrite and os.path.isfile(cia_name):
-                    error('"{}" already exists. Use `--overwrite\' to force'
-                          'conversion.'.format(cia_name))
-                    continue
-                total_files += 1
-                files.append([input_file, rom_name, cia_name])
-    elif arg[:9] == '--output=':
-        output_directory = arg[9:]
-    elif arg[:8] == '--boot9=':
-        boot9_path = arg[8:]
-    # deprecated option
-    elif arg[:9] == '--xorpads':
-        use_deprecated = True
+            files.append([input_file, rom_name, cia_name])
 
-if use_deprecated:
+if args.use_deprecated:
     print('Note: Deprecated options are being used. XORpads are no longer '
           'supported. See the README at https://github.com/ihaveamac/3dsconv '
           'for more details.')
 
 # print if pyaes is found, and search for boot9 if it is
 # then get the original NCCH key from it
-boot9_found = False
 keys_set = False
 orig_ncch_key = 0
 if pyaes_found:
@@ -233,7 +263,7 @@ if pyaes_found:
         keys_offset = 0
         if os.path.getsize(boot9_file) == 0x10000:
             keys_offset += 0x8000
-        if dev_keys:
+        if args.dev_keys:
             keys_offset += 0x400
         with open(boot9_file, 'rb') as f:
             global keys_set, orig_ncch_key
@@ -241,7 +271,7 @@ if pyaes_found:
             f.seek(0x59D0 + keys_offset)
             key = f.read(0x10)
             key_hash = hashlib.md5(key).hexdigest()
-            correct_hash = ('49aa32c775608af6298ddc0fc6d18a7e' if dev_keys else
+            correct_hash = ('49aa32c775608af6298ddc0fc6d18a7e' if args.dev_keys else
                             'e35bf88330f4f1b2bb6fd5b870a679ca')
             if key_hash == correct_hash:
                 print_v('Correct key found.')
@@ -258,9 +288,9 @@ if pyaes_found:
             else:
                 print_v('File doesn\'t exist.')
 
-    # check supplied path by boot9_path or --boot9=
-    if boot9_path != '':
-        check_path(boot9_path)
+    # check supplied path by boot9_path or --boot9
+    if args.boot9:
+        check_path(args.boot9)
     check_path('boot9.bin')
     check_path('boot9_prot.bin')
     check_path(os.path.expanduser('~') + '/.3ds/boot9.bin')
@@ -271,8 +301,8 @@ else:
     error('pyaes not found, encryption will not be supported')
 
 # create output directory if it doesn't exist
-if output_directory != '':
-    os.makedirs(output_directory, exist_ok=True)
+if args.output != '':
+    os.makedirs(args.output, exist_ok=True)
 
 if not total_files:
     error('No files were given.')
@@ -334,7 +364,7 @@ for rom_file in files:
         rom.seek(game_cxi_offset + 0x18F)
         # pay no mind to this ugliness...
         encryption_bitmask = struct.pack('c', rom.read(1))[0]
-        encrypted = not (encryption_bitmask & 0x4 or ignore_encryption == True)
+        encrypted = not (encryption_bitmask & 0x4 or args.ignore_encryption == True)
         zerokey_encrypted = encryption_bitmask & 0x1
 
         if encrypted:
@@ -363,7 +393,7 @@ for rom_file in files:
                             binascii.hexlify(key).decode('utf-8').upper())
 
         print('Converting {} ({})...'.format(
-            rom_file[1], 'ignore encryption' if ignore_encryption else (
+            rom_file[1], 'ignore encryption' if args.ignore_encryption else (
                 'zerokey encrypted' if zerokey_encrypted else (
                     'encrypted' if encrypted else 'decrypted'
                 )
@@ -388,7 +418,7 @@ for rom_file in files:
                 'This file may be corrupt (invalid ExtHeader hash). '
                 'If you are certain that the rom is decrypted, use --ignore-encryption'
             )
-            if ignore_bad_hashes:
+            if args.ignore_bad_hashes:
                 print('Converting anyway because --ignore-bad-hashes was '
                       'passed.')
             else:
@@ -419,7 +449,7 @@ for rom_file in files:
         rom.seek(game_cxi_offset)
         ncch_header = list(rom.read(0x200))
         ncch_header[0x160:0x180] = list(new_extheader_hash)
-        if ignore_encryption == True:
+        if args.ignore_encryption == True:
             print_v('\nEncryption is ignored, setting ncchflag[7] to NoCrypto')
             ncch_header[0x18F] |= 0x4
         ncch_header = bytes(ncch_header)
@@ -507,7 +537,7 @@ for rom_file in files:
                 # content index
                 struct.pack('<IB', 0, content_index) + (bytes(0x201F)) +
                 # cert chain
-                (certchain_dev if dev_keys else
+                (certchain_dev if args.dev_keys else
                  zlib.decompress(base64.b64decode(certchain_retail))) +
                 # ticket, tmd
                 zlib.decompress(base64.b64decode(ticket_tmd)) +
