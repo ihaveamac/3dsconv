@@ -1,3 +1,5 @@
+__pycache__/
+
 # ignore roms and stuff
 *.3ds
 *.cci
